@@ -1,0 +1,127 @@
+services:
+  server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:?}
+    container_name: authentik-server
+    restart: unless-stopped
+    command: server
+    secrets:
+      - authentik_secret_key
+      - postgres_password
+    environment:
+      AUTHENTIK_REDIS__HOST: authentik-cache
+      AUTHENTIK_POSTGRESQL__HOST: authentik-db
+      AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER:?}
+      AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DB:?}
+      AUTHENTIK_POSTGRESQL__PASSWORD: /run/secrets/postgres_password
+      AUTHENTIK_SECRET_KEY: /run/secrets/authentik_secret_key
+      AUTHENTIK_EMAIL__HOST: ${EMAIL_HOST:?}
+      AUTHENTIK_EMAIL__PORT: ${EMAIL_PORT:?}
+      AUTHENTIK_EMAIL__USE_TLS: ${EMAIL_USE_TLS:?}
+      AUTHENTIK_EMAIL__USE_SSL: ${EMAIL_USE_SSL:?}
+      AUTHENTIK_EMAIL__TIMEOUT: ${EMAIL_TIMEOUT:?}
+      AUTHENTIK_EMAIL__FROM: ${EMAIL_USERNAME:?}
+      AUTHENTIK_EMAIL__USERNAME: ${EMAIL_USERNAME:?}
+      AUTHENTIK_EMAIL__PASSWORD: ${EMAIL_PASSWORD:?}  
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.authentik.entrypoints=https
+      - traefik.http.routers.authentik.rule=Host(`auth.${TRAEFIK_DOMAIN:?}`)
+      - traefik.http.routers.authentik.tls=true
+      - traefik.http.routers.authentik.tls.certresolver=cloudflare
+      - traefik.http.services.authentik.loadbalancer.server.port=9000
+      - traefik.http.routers.authentik.middlewares=default@file
+    networks:
+      - authentik
+      - traefik
+    volumes:
+      - ./media:/media
+      - ./custom-templates:/templates
+    depends_on:
+      - db
+      - cache
+
+  worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:?}
+    container_name: authentik-worker
+    restart: unless-stopped
+    user: ${PUID:?}:${PGID:?}
+    command: worker
+    secrets:
+      - authentik_secret_key
+      - postgres_password
+    environment:
+      AUTHENTIK_REDIS__HOST: authentik-cache
+      AUTHENTIK_POSTGRESQL__HOST: authentik-db
+      AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER:?}
+      AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DB:?}
+      AUTHENTIK_POSTGRESQL__PASSWORD: /run/secrets/postgres_password
+      AUTHENTIK_SECRET_KEY: /run/secrets/authentik_secret_key
+      AUTHENTIK_EMAIL__HOST: ${EMAIL_HOST:?}
+      AUTHENTIK_EMAIL__PORT: ${EMAIL_PORT:?}
+      AUTHENTIK_EMAIL__USE_TLS: ${EMAIL_USE_TLS:?}
+      AUTHENTIK_EMAIL__USE_SSL: ${EMAIL_USE_SSL:?}
+      AUTHENTIK_EMAIL__TIMEOUT: ${EMAIL_TIMEOUT:?}
+      AUTHENTIK_EMAIL__FROM: ${EMAIL_USERNAME:?}
+      AUTHENTIK_EMAIL__USERNAME: ${EMAIL_USERNAME:?}
+      AUTHENTIK_EMAIL__PASSWORD: ${EMAIL_PASSWORD:?}
+    networks:
+      - authentik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./media:/media
+      - ./custom-templates:/templates
+      - ./data/certs:/certs
+    depends_on:
+      - db
+      - cache
+
+  db:
+    image: docker.io/library/postgres:16-alpine
+    container_name: authentik-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB:?} -U $${POSTGRES_USER:?}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    secrets:
+      - postgres_password
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+      POSTGRES_PASSWORD: /run/secrets/postgres_password
+    networks:
+      - authentik
+    volumes:
+      - ./data/database:/var/lib/postgresql/data
+
+  cache:
+    image: docker.io/library/redis:alpine
+    container_name: authentik-cache
+    command: --save 60 1 --loglevel warning
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    networks:
+      - authentik
+    volumes:
+      - ./data/cache:/data
+
+networks:
+  authentik:
+    name: authentik
+  traefik:
+    external: true
+
+secrets:
+  authentik_email_password:
+    file: "./secrets/AUTHENTIK_EMAIL_PASSWORD.secret"
+  authentik_secret_key:
+    file: "./secrets/AUTHENTIK_SECRET_KEY.secret"
+  postgres_password:
+    file: "./secrets/POSTGRES_PASSWORD.secret"
