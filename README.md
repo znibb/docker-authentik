@@ -20,6 +20,9 @@ Docker container for use as Identity Provider and authentication portal in front
   - [4.2. Nextcloud](#42-nextcloud)
     - [4.2.1. Authentik settings](#421-authentik-settings)
     - [4.2.2. Nextcloud settings](#422-nextcloud-settings)
+  - [4.3. Synology NAS](#43-synology-nas)
+    - [4.3.1. Authentik settings](#431-authentik-settings)
+    - [4.3.2. Synology DSM settings](#432-synology-dsm-settings)
 
 ## 1. Docker Setup
 1. Initialize config by running init.sh: `./init.sh`
@@ -349,3 +352,35 @@ To map an Authentik user to an existing Nextcloud account give the user an attri
    - Use unique user id: Turn this **OFF**
 
 To make Authentik the default login method for Nextcloud go to your Nextcloud docker directory and run `docker compose exec -u www-data nextcloud php occ config:app:set --value=0 user_oidc allow_multiple_user_backends`.
+
+### 4.3. Synology NAS
+Authentik has a community integration for Synology DSM to allow user login via Authentik.
+
+#### 4.3.1. Authentik settings
+1. Open the Authentik Admin Interface
+2. Go to `Applications->Providers` and click `Create`
+3. Select `OAuth2/OpenID Provider` and click `Next`
+4. Enter the following:
+   - Name: Synology Provider
+   - Authorization flow: implicit-consent
+   - Client type: `Confidential`
+   - Redirect URIs/Origins (RegEx): `https://nas.DOMAIN.COM/#/signin` (use whatever subdomain you set up in your Traefik dynamic_config.yml)
+   - Subject mode: `Based on the User's username`
+5. Click `Finish`
+6. Go to `Applications->Applications` and click `Create`
+7. Enter `Name`//`Slug` as `NAS`//`nas` and select the recently created provider, click `Create`
+
+#### 4.3.2. Synology DSM settings
+1. Log in to DSM with an admin account
+2. Go to `Control Panel->Domain/LDAP` and click on the `SSO Client` tab
+3. Check the `Enable OpenID Connect SSO service` box and click the `OpenID Connect SSO Settings` button below it
+4. Enter the following:
+   - Name: `Authentik`
+   - Wellknown URL: `https://auth.DOMAIN.COM/application/o/nas/.well-known/openid-configuration`
+   - Application ID: Client ID from the Synology Provider
+   - Application Key: Client Secret from the Synology Provider
+   - Redirect URL: `https://nas.DOMAIN.COM/#/signin`
+   - Authorization scope: `openid profile email`
+   - Username claim: `preferred_username`
+
+Currently doesn't work properly with DSM <7.2 so TBC...
