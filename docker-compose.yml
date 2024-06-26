@@ -61,6 +61,7 @@ services:
     networks:
       - authentik
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./media:/media
       - ./custom-templates:/templates
       - ./data/certs:/certs
