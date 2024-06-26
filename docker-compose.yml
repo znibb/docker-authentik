@@ -4,16 +4,13 @@ services:
     container_name: authentik-server
     restart: unless-stopped
     command: server
-    secrets:
-      - authentik_secret_key
-      - postgres_password
     environment:
       AUTHENTIK_REDIS__HOST: authentik-cache
       AUTHENTIK_POSTGRESQL__HOST: authentik-db
       AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER:?}
       AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DB:?}
-      AUTHENTIK_POSTGRESQL__PASSWORD: /run/secrets/postgres_password
-      AUTHENTIK_SECRET_KEY: /run/secrets/authentik_secret_key
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_PASSWORD:?}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?}
       AUTHENTIK_EMAIL__HOST: ${EMAIL_HOST:?}
       AUTHENTIK_EMAIL__PORT: ${EMAIL_PORT:?}
       AUTHENTIK_EMAIL__USE_TLS: ${EMAIL_USE_TLS:?}
@@ -46,16 +43,13 @@ services:
     restart: unless-stopped
     user: ${PUID:?}:${PGID:?}
     command: worker
-    secrets:
-      - authentik_secret_key
-      - postgres_password
     environment:
       AUTHENTIK_REDIS__HOST: authentik-cache
       AUTHENTIK_POSTGRESQL__HOST: authentik-db
       AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER:?}
       AUTHENTIK_POSTGRESQL__NAME: ${POSTGRES_DB:?}
-      AUTHENTIK_POSTGRESQL__PASSWORD: /run/secrets/postgres_password
-      AUTHENTIK_SECRET_KEY: /run/secrets/authentik_secret_key
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_PASSWORD:?}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?}
       AUTHENTIK_EMAIL__HOST: ${EMAIL_HOST:?}
       AUTHENTIK_EMAIL__PORT: ${EMAIL_PORT:?}
       AUTHENTIK_EMAIL__USE_TLS: ${EMAIL_USE_TLS:?}
@@ -67,7 +61,6 @@ services:
     networks:
       - authentik
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ./media:/media
       - ./custom-templates:/templates
       - ./data/certs:/certs
@@ -85,12 +78,10 @@ services:
       interval: 30s
       retries: 5
       timeout: 5s
-    secrets:
-      - postgres_password
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?}
       POSTGRES_DB: ${POSTGRES_DB:?}
-      POSTGRES_PASSWORD: /run/secrets/postgres_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
     networks:
       - authentik
     volumes:
@@ -117,11 +108,3 @@ networks:
     name: authentik
   traefik:
     external: true
-
-secrets:
-  authentik_email_password:
-    file: "./secrets/AUTHENTIK_EMAIL_PASSWORD.secret"
-  authentik_secret_key:
-    file: "./secrets/AUTHENTIK_SECRET_KEY.secret"
-  postgres_password:
-    file: "./secrets/POSTGRES_PASSWORD.secret"
