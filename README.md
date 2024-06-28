@@ -14,6 +14,7 @@ Docker container for use as Identity Provider and authentication portal in front
   - [3.5. Password recovery](#35-password-recovery)
   - [3.6. Invitation](#36-invitation)
 - [4. Applications setup](#4-applications-setup)
+  - [API calls bypassing authentication](#api-calls-bypassing-authentication)
   - [4.1. Servarr](#41-servarr)
     - [4.1.1. Traefik changes](#411-traefik-changes)
     - [4.1.2. Authentik settings](#412-authentik-settings)
@@ -204,6 +205,9 @@ It's a bad idea to allow anyone visiting the login page to register for an accou
 You can now go to `Directory->Invitations` and click `Create` to create an invitation link. Set a suitable name and expiration time. Make sure to select the `enrollment-invitation` flow and make sure `Single use` is checked. Expand the recently created invite and `Link to use the invitation` will contain the link to be distributed.
 
 ## 4. Applications setup
+### API calls bypassing authentication
+If you want to allow API calls to a certain application to bypass authentication simply add `^\/api\/.*` to `Advanced protocol settings->Unauthenticated Paths` under the relevant Provider.
+
 ### 4.1. Servarr
 Authentik can be set up to contain the user//pass for the HTTP logins for the various Servarr apps and to forward credentials to the respective app after authentication via Authentik. This way you can keep authentication activated for each app but still only have to log in once when going through Authentik.
 
