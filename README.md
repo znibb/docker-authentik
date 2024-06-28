@@ -14,16 +14,16 @@ Docker container for use as Identity Provider and authentication portal in front
   - [3.5. Password recovery](#35-password-recovery)
   - [3.6. Invitation](#36-invitation)
 - [4. Applications setup](#4-applications-setup)
-  - [API calls bypassing authentication](#api-calls-bypassing-authentication)
-  - [4.1. Servarr](#41-servarr)
-    - [4.1.1. Traefik changes](#411-traefik-changes)
-    - [4.1.2. Authentik settings](#412-authentik-settings)
-  - [4.2. Nextcloud](#42-nextcloud)
-    - [4.2.1. Authentik settings](#421-authentik-settings)
-    - [4.2.2. Nextcloud settings](#422-nextcloud-settings)
-  - [4.3. Synology NAS](#43-synology-nas)
+  - [4.1. API calls bypassing authentication](#41-api-calls-bypassing-authentication)
+  - [4.2. Servarr](#42-servarr)
+    - [4.2.1. Traefik changes](#421-traefik-changes)
+    - [4.2.2. Authentik settings](#422-authentik-settings)
+  - [4.3. Nextcloud](#43-nextcloud)
     - [4.3.1. Authentik settings](#431-authentik-settings)
-    - [4.3.2. Synology DSM settings](#432-synology-dsm-settings)
+    - [4.3.2. Nextcloud settings](#432-nextcloud-settings)
+  - [4.4. Synology NAS](#44-synology-nas)
+    - [4.4.1. Authentik settings](#441-authentik-settings)
+    - [4.4.2. Synology DSM settings](#442-synology-dsm-settings)
 
 ## 1. Docker Setup
 1. Initialize config by running init.sh: `./init.sh`
@@ -205,13 +205,13 @@ It's a bad idea to allow anyone visiting the login page to register for an accou
 You can now go to `Directory->Invitations` and click `Create` to create an invitation link. Set a suitable name and expiration time. Make sure to select the `enrollment-invitation` flow and make sure `Single use` is checked. Expand the recently created invite and `Link to use the invitation` will contain the link to be distributed.
 
 ## 4. Applications setup
-### API calls bypassing authentication
+### 4.1. API calls bypassing authentication
 If you want to allow API calls to a certain application to bypass authentication simply add `^\/api\/.*` to `Advanced protocol settings->Unauthenticated Paths` under the relevant Provider.
 
-### 4.1. Servarr
+### 4.2. Servarr
 Authentik can be set up to contain the user//pass for the HTTP logins for the various Servarr apps and to forward credentials to the respective app after authentication via Authentik. This way you can keep authentication activated for each app but still only have to log in once when going through Authentik.
 
-#### 4.1.1. Traefik changes
+#### 4.2.1. Traefik changes
 1. Go to your Traefik dir and open your `dynamic_config.yml`
 2. Create a middleware similar to the one in the general Traefik setup above but including the `authorization` header (this is required for Authentik to be able to forward the credentials):
     ```
@@ -247,7 +247,7 @@ Authentik can be set up to contain the user//pass for the HTTP logins for the va
 
 For the services where you want to use the HTTP-Basic authentication forwarding via Authentik you need to replace the default authentik middleware chain with the `authentik-http` created above instead.
 
-#### 4.1.2. Authentik settings
+#### 4.2.2. Authentik settings
 1. Open the Authentik Admin Interface
 2. Go to `Directory->Groups` and click `Create`
 3. Set a suitable name, e.g. `Servarr Users`
@@ -278,10 +278,10 @@ For the services where you want to use the HTTP-Basic authentication forwarding 
 24. Click `Update`
 25. The previously created providers should now be listed in the `Providers` tab for `authentik Embedded Outpost`
 
-### 4.2. Nextcloud
+### 4.3. Nextcloud
 Authentik has a community integration for Nextcloud to allow user login and provisioning via Authentik.
 
-#### 4.2.1. Authentik settings
+#### 4.3.1. Authentik settings
 Make sure usernames are immutable by going to `System->Settings` in the `Admin Interface` and checking that `Allow users to change username` is **OFF*.
 
 1. Open the Authentik Admin Interface
@@ -338,7 +338,7 @@ Make sure usernames are immutable by going to `System->Settings` in the `Admin I
 
 To map an Authentik user to an existing Nextcloud account give the user an attribute like `nextcloud_user_id: NEXTCLOUD_ACCOUNT_NAME`. To give a user a quota limit give it an atrtibute like `nextcloud_quota: 10 GB`.
 
-#### 4.2.2. Nextcloud settings
+#### 4.3.2. Nextcloud settings
 1. Log into the web UI using an admin account, click on the profile icon in the top-right and then click on `Apps`
 2. Select the `Integration` category to the left and look for `OpenID Connect user backend`, enable it
 3. Open `Unified search` by clicking the magnifying glass in the top-right and searching for `OpenID Connect`, click on the `Administration` entry
@@ -357,10 +357,10 @@ To map an Authentik user to an existing Nextcloud account give the user an attri
 
 To make Authentik the default login method for Nextcloud go to your Nextcloud docker directory and run `docker compose exec -u www-data nextcloud php occ config:app:set --value=0 user_oidc allow_multiple_user_backends`.
 
-### 4.3. Synology NAS
+### 4.4. Synology NAS
 Authentik has a community integration for Synology DSM to allow user login via Authentik.
 
-#### 4.3.1. Authentik settings
+#### 4.4.1. Authentik settings
 1. Open the Authentik Admin Interface
 2. Go to `Applications->Providers` and click `Create`
 3. Select `OAuth2/OpenID Provider` and click `Next`
@@ -374,7 +374,7 @@ Authentik has a community integration for Synology DSM to allow user login via A
 6. Go to `Applications->Applications` and click `Create`
 7. Enter `Name`//`Slug` as `NAS`//`nas` and select the recently created provider, click `Create`
 
-#### 4.3.2. Synology DSM settings
+#### 4.4.2. Synology DSM settings
 1. Log in to DSM with an admin account
 2. Go to `Control Panel->Domain/LDAP` and click on the `SSO Client` tab
 3. Check the `Enable OpenID Connect SSO service` box and click the `OpenID Connect SSO Settings` button below it
