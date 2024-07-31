@@ -31,8 +31,8 @@ services:
       - authentik
       - traefik
     volumes:
-      - ./media:/media
-      - ./custom-templates:/templates
+      - ./data/media:/media
+      - ./data/custom-templates:/templates
     depends_on:
       - db
       - cache
@@ -62,8 +62,8 @@ services:
       - authentik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./media:/media
-      - ./custom-templates:/templates
+      - ./data/media:/media
+      - ./data/custom-templates:/templates
       - ./data/certs:/certs
     depends_on:
       - db
@@ -72,6 +72,7 @@ services:
   db:
     image: docker.io/library/postgres:16-alpine
     container_name: authentik-db
+    user: ${PUID:?}:${PGID:?}
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB:?} -U $${POSTGRES_USER:?}"]
@@ -102,10 +103,14 @@ services:
     networks:
       - authentik
     volumes:
-      - ./data/cache:/data
+      - cache:/data
 
 networks:
   authentik:
     name: authentik
   traefik:
     external: true
+
+volumes:
+  cache:
+    name: authentik-cache
