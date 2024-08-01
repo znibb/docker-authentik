@@ -1,6 +1,7 @@
+# docker-authentik <!-- omit from toc -->
 Docker container for use as Identity Provider and authentication portal in front of a Traefik reverse-proxy.
 
-**Table of Contents:**
+## Table of Contents: <!-- omit from toc -->
 - [1. Docker Setup](#1-docker-setup)
 - [2. Authentik Setup (Written for version 2024.4.2)](#2-authentik-setup-written-for-version-202442)
   - [2.1. Set up your first user](#21-set-up-your-first-user)
