@@ -3,8 +3,10 @@ services:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:?}
     container_name: authentik-server
     restart: unless-stopped
+    user: ${PUID:?}:${PGID:?}
     command: server
     environment:
+      AUTHENTIK_LOG_LEVEL: warning # debug/info/warning/error
       AUTHENTIK_REDIS__HOST: authentik-cache
       AUTHENTIK_POSTGRESQL__HOST: authentik-db
       AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER:?}
@@ -21,18 +23,20 @@ services:
       AUTHENTIK_EMAIL__PASSWORD: ${EMAIL_PASSWORD:?}  
     labels:
       - traefik.enable=true
-      - traefik.http.routers.authentik.entrypoints=https
+      - traefik.http.services.authentik.loadbalancer.server.port=9000
       - traefik.http.routers.authentik.rule=Host(`auth.${TRAEFIK_DOMAIN:?}`)
+      - traefik.http.routers.authentik.entrypoints=https
       - traefik.http.routers.authentik.tls=true
       - traefik.http.routers.authentik.tls.certresolver=cloudflare
-      - traefik.http.services.authentik.loadbalancer.server.port=9000
       - traefik.http.routers.authentik.middlewares=default@file
     networks:
       - authentik
       - traefik
+    ports:
+      - 9000:9000
     volumes:
-      - ./data/media:/media
       - ./data/custom-templates:/templates
+      - ./data/media:/media
     depends_on:
       - db
       - cache
@@ -44,6 +48,7 @@ services:
     user: ${PUID:?}:${PGID:?}
     command: worker
     environment:
+      AUTHENTIK_LOG_LEVEL: warning # debug/info/warning/error
       AUTHENTIK_REDIS__HOST: authentik-cache
       AUTHENTIK_POSTGRESQL__HOST: authentik-db
       AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER:?}
@@ -61,10 +66,9 @@ services:
     networks:
       - authentik
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/media:/media
-      - ./data/custom-templates:/templates
       - ./data/certs:/certs
+      - ./data/custom-templates:/templates
+      - ./data/media:/media
     depends_on:
       - db
       - cache
@@ -72,7 +76,6 @@ services:
   db:
     image: docker.io/library/postgres:16-alpine
     container_name: authentik-db
-    user: ${PUID:?}:${PGID:?}
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB:?} -U $${POSTGRES_USER:?}"]
@@ -87,7 +90,7 @@ services:
     networks:
       - authentik
     volumes:
-      - ./data/database:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
 
   cache:
     image: docker.io/library/redis:alpine
@@ -114,3 +117,5 @@ networks:
 volumes:
   cache:
     name: authentik-cache
+  db:
+    name: authentik-db
