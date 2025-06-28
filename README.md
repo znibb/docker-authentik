@@ -317,7 +317,7 @@ Make sure usernames are immutable by going to `System->Settings` in the `Admin I
     # This is static and cannot be changed.
     # We append a fictional "admin" group to the user's groups if they are a member of "nextcloud Admins" in authentik.
     # This group would only be visible in Nextcloud and does not exist in authentik.
-    if "nextcloud_admins" in groups:
+    if "nextcloud Admins" in groups:
         groups = ["admin"]
     else:
         groups = []
@@ -342,7 +342,7 @@ Make sure usernames are immutable by going to `System->Settings` in the `Admin I
     - Authorization flow: implicit-consent
     - Client type: `Confidential`
     - Redirect URIs/Origins (RegEx): `https://nc.DOMAIN.COM/apps/user_oidc/code` (make sure you're using the correct path prefix)
-1. Under `Scopes` select:
+1. Under `Advanced protocol settings->Scopes` select:
     - `authentik default OAuth Mapping: OpenID 'email'`
     - `authentik default OAuth Mapping: OpenID 'openid'`
     - `authentik default OAuth Mapping: OpenID 'profile'`
@@ -357,14 +357,14 @@ Make sure usernames are immutable by going to `System->Settings` in the `Admin I
     - Provider: `Nextcloud Provider`
 1. Click `Create`
 1. Click on the recently created application and go to the `Policy / Group/ User Bindings` tab
-1. Click `Bind existing Policy / Group / User`, select the `Group` option and then select the `nextcloud_users` group
+1. Click `Bind existing Policy / Group / User`, select the `Group` option and then select the `nextcloud Users` group
 
 To map an Authentik user to an existing Nextcloud account give the user an attribute like `nextcloud_user_id: NEXTCLOUD_ACCOUNT_NAME`. To give a user a quota limit give it an atrtibute like `nextcloud_quota: 10 GB`.
 
 #### 4.3.2. Nextcloud settings
 1. Log into the web UI using an admin account, click on the profile icon in the top-right and then click on `Apps`
 1. Select the `Integration` category to the left and look for `OpenID Connect user backend`, enable it
-1. Go to the top.right menu again and this time click `Administration Settings`
+1. Go to the top-right menu again and this time click `Administration Settings`
 1. In the left-side menu list click on `OpenID Connect`
 1. Click the plus sign under `Registered Providers` and enter the following:
    - Identifier: `Authentik`
