@@ -3,7 +3,7 @@ Docker container for use as Identity Provider and authentication portal in front
 
 ## Table of Contents: <!-- omit from toc -->
 - [1. Docker Setup](#1-docker-setup)
-- [2. Authentik Setup (Written for version 2024.4.2)](#2-authentik-setup-written-for-version-202442)
+- [2. Authentik Setup](#2-authentik-setup)
   - [2.1. Set up your first user](#21-set-up-your-first-user)
   - [2.2. Configuring Authentik Embedded Outpost](#22-configuring-authentik-embedded-outpost)
   - [2.3. Configuring Traefik](#23-configuring-traefik)
@@ -33,7 +33,8 @@ Docker container for use as Identity Provider and authentication portal in front
 1. Make sure that Docker network `traefik` exists, `docker network ls`
 1. Run `docker compose up` and check logs
 
-## 2. Authentik Setup (Updated for version 2025.6.2)
+## 2. Authentik Setup
+Updated for version 2025.6.3
 ### 2.1. Set up your first user
 1. Open browser and go to `auth.YOURDOMAIN.COM` and verify that you reach the Authentik login screen
 1. Add `/if/flow/initial-setup/` at the end of the URL to reach the dialogue for setting up the initial admin account
