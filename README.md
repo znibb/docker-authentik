@@ -60,8 +60,8 @@ You have now logged in for the first time, created your own user account and dis
 1. Change `Token validity` to your taste and click `Finish`
 1. Go to `Applications->Applications` and click `Create`
 1. Input `Name` and `Slug`, e.g. `Traefik`//`traefik`
-1. Click the `Provider`field and select `Traefik Provider` (or whatever you named it in the previous step) and finally click `Create`
-1. Go back to `Applications->Providers` and verify that `Traefik Provider` has a green checkmark and the text `Assigned to application Traefik` under the `Àpplication` column
+1. Click the `Provider` field and select `Traefik Provider` (or whatever you named it in the previous step) and finally click `Create`
+1. Go back to `Applications->Providers` and verify that `Traefik Provider` has a green checkmark and the text `Assigned to application Traefik` under the `Application` column
 1. Go back to `Applications->Outposts` and click the  `Edit` button for the `authentik Embedded Outpost` (under the `Actions` column)
 1. In the `Applications` section click on `Traefik` and press the > button to add it to `Selected Applications`, then press `Update`
 
@@ -124,10 +124,11 @@ It's a good idea to enforce some kind of password policy.
 1. Set a suitable `Name`, e.g. `password-complexity`
 1. Expand the `Static rules` section
 1. Input your choice of rules and enter an `Error message` that reflects the requirements, e.g. `Please enter a minimum of 12 characters with at least 1 uppercase, 1 lowercase, 1 digit and 1 symbol character.`
-1. Go to `Flows and Stages->Stages`, click `Edit` for the `stage-default-oobe-password` stage
-1. Scroll down to `Validation Policies`, select the password policy created previously under `Available Policies` and click `>` to add it to `Selected Policies
+1. Click `Finish`
+1. Go to `Flows and Stages->Stages`, click `Edit` for the `default-source-enrollment-prompt` stage
+1. Scroll down to `Validation Policies`, select the password policy created previously under `Available Policies` and click `>` to add it to `Selected Policies.
+1. Make sure to remove any other default policies and click `Update`
 1. Repeat above for the `default-password-change-prompt` stage while also removing the `default-password-change-password-policy` if present
-1. Repeat again for the `default-source-enrollment-prompt` stage
 
 ### 3.4. MFA forced on login
 It's a good idea to enforce MFA for something that provides such powerful means of access. Here's how to force setup of MFA using TOTP using e.g. Google Authenticator app.
@@ -153,7 +154,7 @@ If users forget their password it's nice if they're able to reset their password
 
 1. Go to `Flows and Stages->Stages` and click `Create`
 1. Select `Identification Stage` and click `Next`
-1. Set a suitable name, e.g. `recovery-authentication-identification`, select `User fields` `Username` and `Email` and click `Finish`
+1. Set a suitable name, e.g. `recovery-authentication-identification`, under `User fields` select `Username` and `Email` and click `Finish`
 1. Click `Create` again and select `Email Stage`, click `Next`
 1. Set a suitable `Name`, e.g. `recovery-email`
 1. Set `Subject` to e.g. `Authentik password recovery`, click `Finish`
@@ -163,12 +164,12 @@ If users forget their password it's nice if they're able to reset their password
 1. Click `Create`
 1. Click on the `recovery` flow we just created and go to the `Stage Bindings` tab
 1. Add bindings by clicking `Bind existing stage` and setting up according to the table below:
-    | Order | Stage |
-    | ----: | :---- |
-    | 10 | recovery-authentication-identification |
-    | 20 | recovery-email |
-    | 30 | default-password-change-prompt |
-    | 40 | default-password-change-write |
+    | Order | Stage | Type |
+    | ----: | :---- | :--- |
+    | 10 | recovery-authentication-identification | Identification Stage |
+    | 20 | recovery-email | Email Stage |
+    | 30 | default-password-change-prompt | Prompt Stage |
+    | 40 | default-password-change-write | User Write Stage |
 1. Go to `Flows and Stages->Stages` and click `Edit` for the `default-authentication-identification` stage
 1. Under `Flow settings->Recovery flow` select `recovery (Recovery)` and click `Update`
 
@@ -199,13 +200,13 @@ It's a bad idea to allow anyone visiting the login page to register for an accou
 1. Click the recently created `enrollment-invitation` flow and go to the `Stage Bindings` tab
 1. Add bindings by clicking `Bind existing stage ` and setting up according to the table below:
 
-    | Order | Stage |
-    | ----: | :---- |
-    | 10 | enrollment-invitation |
-    | 20 | default-source-enrollment-prompt |
-    | 30 | enrollment-invitation-write |
-    | 40 | enrollment-invitaion-email |
-    | 50 | default-source-enrollment-login |
+    | Order | Stage | Type |
+    | ----: | :---- | :--- |
+    | 10 | enrollment-invitation | Invitation Stage |
+    | 20 | default-source-enrollment-prompt | Prompt Stage |
+    | 30 | enrollment-invitation-write | User Write Stage |
+    | 40 | enrollment-invitation-email | Email Stage |
+    | 50 | default-source-enrollment-login | User Login Stage |
 
 1. Click on `Edit Stage` for the `default-source-enrollment-prompt` stage
 1. Under `Stage-specific settings->Fields` select the following entries:

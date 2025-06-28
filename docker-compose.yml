@@ -73,8 +73,24 @@ services:
       - db
       - cache
 
+  cache:
+    image: valkey/valkey:8.1.2-alpine
+    container_name: authentik-cache
+    # command: --save 60 1 --loglevel warning
+    restart: unless-stopped
+    # healthcheck:
+    #   test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+    #   start_period: 20s
+    #   interval: 30s
+    #   retries: 5
+    #   timeout: 3s
+    networks:
+      - authentik
+    volumes:
+      - cache:/data/
+
   db:
-    image: docker.io/library/postgres:16-alpine
+    image: postgres:17.5-alpine
     container_name: authentik-db
     restart: unless-stopped
     healthcheck:
@@ -91,22 +107,6 @@ services:
       - authentik
     volumes:
       - db:/var/lib/postgresql/data
-
-  cache:
-    image: docker.io/library/redis:alpine
-    container_name: authentik-cache
-    command: --save 60 1 --loglevel warning
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      start_period: 20s
-      interval: 30s
-      retries: 5
-      timeout: 3s
-    networks:
-      - authentik
-    volumes:
-      - cache:/data
 
 networks:
   authentik:
