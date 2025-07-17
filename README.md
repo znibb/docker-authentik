@@ -25,6 +25,9 @@ Docker container for use as Identity Provider and authentication portal in front
   - [4.4. Synology NAS](#44-synology-nas)
     - [4.4.1. Authentik settings](#441-authentik-settings)
     - [4.4.2. Synology DSM settings](#442-synology-dsm-settings)
+  - [4.5. Immich settings](#45-immich)
+    - [4.5.1. Authentik settings](#451-authentik-settings)
+    - [4.5.2. Immich settings](#452-immich-settings)
 
 ## 1. Docker Setup
 1. Initialize config by running init.sh: `./init.sh`
@@ -339,7 +342,7 @@ Make sure usernames are immutable by going to `System->Settings` in the `Admin I
 1. Select `OAuth2/OpenID Provider` and click `Next`
 1. Enter the following:
     - Name: `Nextcloud Provider`
-    - Authorization flow: implicit-consent
+    - Authorization flow: `implicit-consent`
     - Client type: `Confidential`
     - Redirect URIs/Origins (RegEx): `https://nc.DOMAIN.COM/apps/user_oidc/code` (make sure you're using the correct path prefix)
 1. Under `Advanced protocol settings->Scopes` select:
@@ -412,3 +415,37 @@ Authentik has a community integration for Synology DSM to allow user login via A
    - Username claim: `preferred_username`
 
 Currently doesn't work properly with DSM <7.2 so TBC...
+
+### 4.5 Immich
+Authentik has a community integration for Immich to allow user login and provisioning via Authentik.
+
+#### 4.5.1 Authentik settings
+1. Open the Authentik Admin Interface
+1. Go to `Applications->Providers` and click `Create`
+1. Select `OAuth2/OpenID Provider` and click `Next`
+1. Enter the following:
+    - Name: `Immich Provider`
+    - Authorization flow: `implicit-consent`
+    - Client type: `Confidential`
+    - Redirect URIs/Origins (RegEx):
+        - `https://immich.DOMAIN.COM/auth/login`
+        - `https://immich.DOMAIN.COM/user-settings`
+        - `app.immich://oauth-callback`
+1. Take note of the `Client ID` and `Client Secret`, we will need these in the Immich setup
+1. Click `Finish`
+1. Go to `Applications->Applications` and click `Create`
+1. Enter the following:
+    - Name: `Immich`
+    - Slug: `immich`
+    - Provider: `Immich Provider`
+1. Click `Create`
+
+#### 4.5.2 Immich settings
+1. Log in with the admin account initially set up for Immich
+1. Click the top-right circle icon and select `Administration`
+1. From the left-side menu select `Settings` and then `Authentication Settings->OAuth`
+1. Enable `Login with OAuth` and fill out:
+    - ISSUER_URL: `https://auth.DOMAIN.COM/application/o/immich/`
+    - CLIENT_ID: Use value from Authentik Provider setup
+    - CLIENT_SECRET: Use value from Authentik Provider setup
+1. Click `Save` at the bottom of the form
