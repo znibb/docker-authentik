@@ -1,5 +1,6 @@
 services:
   server:
+    # https://github.com/goauthentik/authentik/pkgs/container/server
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:?}
     container_name: authentik-server
     restart: unless-stopped

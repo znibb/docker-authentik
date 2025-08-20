@@ -448,4 +448,5 @@ Authentik has a community integration for Immich to allow user login and provisi
     - ISSUER_URL: `https://auth.DOMAIN.COM/application/o/immich/`
     - CLIENT_ID: Use value from Authentik Provider setup
     - CLIENT_SECRET: Use value from Authentik Provider setup
+    - AUTO LAUNCH: Set to ON
 1. Click `Save` at the bottom of the form
