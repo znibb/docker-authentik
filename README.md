@@ -28,6 +28,9 @@ Docker container for use as Identity Provider and authentication portal in front
   - [4.5. Immich settings](#45-immich)
     - [4.5.1. Authentik settings](#451-authentik-settings)
     - [4.5.2. Immich settings](#452-immich-settings)
+  - [4.6 Inventree settings](#46-inventree)
+    - [4.6.1 Authentik settings](#461-authentik-settings)
+    - [4.6.2 Inventree settings](#462-inventree-settings)
 
 ## 1. Docker Setup
 1. Initialize config by running init.sh: `./init.sh`
@@ -450,3 +453,49 @@ Authentik has a community integration for Immich to allow user login and provisi
     - CLIENT_SECRET: Use value from Authentik Provider setup
     - AUTO LAUNCH: Set to ON
 1. Click `Save` at the bottom of the form
+
+### 4.6 Inventree
+Authentik doesn't have an outright integration for Inventree but Inventree supports general OIDC.
+
+#### 4.6.1 Authentik settings
+1. Go to `Applications->Providers` and click `Create`
+1. Select `OAuth2/OpenID Provider` and click `Next`
+1. Enter the following:
+    - Name: `Inventree Provider`
+    - Authorization flow:: `implicit-consent`
+    - Client type: `Confidential`
+    - Redirect URIs/Origins (RegEx): ("authentik" refers to the provider id set in Inventree)
+        - `https://parts.DOMAIN.COM/accounts/authentik/login/callback/`
+        - `https://inventree.DOMAIN.COM/accounts/authentik/login/callback/`
+1. Take note of the `Client ID` and `Client Secret`, we will need these in the Inventree setup
+1. Click `Finish`
+1. Go to `Applicaitons->Applications` and click `Create`
+1. Enter the following:
+    - Name: `Inventree`
+    - Slug: `inventree`
+    - Provider: `Inventree Provider`
+1. Click `Create`
+
+#### 4.6.2 Inventree settings
+1. Log in as superuser/admin and go to `Admin Center`
+1. Under `Operations->Users / Access`, expand the `Groups` section and add groups called `Admins` and `Users`
+1. Go to `System Settings`
+1. Make sure that the following options are **ON**:
+    - Enable SSO
+    - Enable SSO registration
+    - Auto-fill SSO users
+    - Enable SSO group sync
+    - Remove groups outside of SSO
+1. Make sure that the following option is **OFF**:
+    - Enable registration
+1. Set `SSO group map` to `{"inventree Users": "Users", "inventree Admins": "Admins"}`
+1. Set `Group on signup` to `Users`
+1. Go to the Django admin panel by entering `https://inventree.DOMAIN.COM/admin/`, scroll down to `SOCIAL ACCOUNTS` and click on `Social applications`
+1. Click `ADD SOCIAL APPLICATION +` and enter:
+    - Provider: `OpenID Connect`
+    - Provider ID: `authentik`
+    - Name: `Authentik`
+    - Client id: As per the Authentik Provider
+    - Secret key: As per the Authentik Provider
+    - Settings: `{"server_url": "https://auth.DOMAIN.COM/application/o/inventree/"}`
+1. Click `SAVE`
