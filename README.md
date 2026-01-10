@@ -469,7 +469,7 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
         - `https://inventree.DOMAIN.COM/accounts/authentik/login/callback/`
 1. Take note of the `Client ID` and `Client Secret`, we will need these in the Inventree setup
 1. Click `Finish`
-1. Go to `Applicaitons->Applications` and click `Create`
+1. Go to `Applications->Applications` and click `Create`
 1. Enter the following:
     - Name: `Inventree`
     - Slug: `inventree`
