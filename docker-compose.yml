@@ -7,7 +7,7 @@ services:
     user: ${PUID:?}:${PGID:?}
     command: server
     environment:
-      AUTHENTIK_LOG_LEVEL: warning # debug/info/warning/error
+      AUTHENTIK_LOG_LEVEL: ${AUTHENTIK_LOG_LEVEL:?}
       AUTHENTIK_REDIS__HOST: authentik-cache
       AUTHENTIK_POSTGRESQL__HOST: authentik-db
       AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER:?}
@@ -26,9 +26,7 @@ services:
       - traefik.enable=true
       - traefik.http.services.authentik.loadbalancer.server.port=9000
       - traefik.http.routers.authentik.rule=Host(`auth.${TRAEFIK_DOMAIN:?}`)
-      - traefik.http.routers.authentik.entrypoints=https
-      - traefik.http.routers.authentik.tls=true
-      - traefik.http.routers.authentik.tls.certresolver=cloudflare
+      - traefik.http.routers.authentik.entrypoints=websecure
       - traefik.http.routers.authentik.middlewares=default@file
     networks:
       - authentik
@@ -49,7 +47,7 @@ services:
     user: ${PUID:?}:${PGID:?}
     command: worker
     environment:
-      AUTHENTIK_LOG_LEVEL: warning # debug/info/warning/error
+      AUTHENTIK_LOG_LEVEL: ${AUTHENTIK_LOG_LEVEL:?}
       AUTHENTIK_REDIS__HOST: authentik-cache
       AUTHENTIK_POSTGRESQL__HOST: authentik-db
       AUTHENTIK_POSTGRESQL__USER: ${POSTGRES_USER:?}
@@ -77,14 +75,9 @@ services:
   cache:
     image: valkey/valkey:8.1.2-alpine
     container_name: authentik-cache
-    # command: --save 60 1 --loglevel warning
     restart: unless-stopped
-    # healthcheck:
-    #   test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-    #   start_period: 20s
-    #   interval: 30s
-    #   retries: 5
-    #   timeout: 3s
+    healthcheck:
+      test: redis-cli ping || exit 1
     networks:
       - authentik
     volumes:
