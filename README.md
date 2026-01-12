@@ -499,3 +499,54 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
     - Secret key: As per the Authentik Provider
     - Settings: `{"server_url": "https://auth.DOMAIN.COM/application/o/inventree/"}`
 1. Click `SAVE`
+
+### 4.7 Home-Assistant
+#### 4.7.1 Authentik settings
+1. Go to `Applications->Providers` and click `Create`
+1. Select `OAuth2/OpenID Provider` and click `Next`
+1. Enter the following:
+    - Name: `HomeAssistant Provider`
+    - Authorization flow:: `implicit-consent`
+    - Client type: `Confidential`
+    - Redirect URIs/Origins (RegEx): Strict,
+        - `https://hass.DOMAIN.COM/auth/openid/callback`
+1. Take note of the `Client ID` and `Client Secret`, we will need transfer these into HomeAssistant config
+1. Click `Finish`
+1. Go to `Applications->Applications` and click `Create`
+1. Enter the following:
+    - Name: `HomeAssistant`
+    - Slug: `home-assistant`
+    - Provider: `HomeAssistant Provider`
+1. Click `Create`
+
+#### 4.7.2 HomeAssistant settings
+1. Log into HomeAssistant as the admin user via local ip
+1. Install the `Terminal & SSH` addon by going to `Settings->Add-ons`, clicking on the `Add-on store` button at the bottom right, searching for `Terminal & SSH` and clicking `Install`
+1. Click `Terminal` in the left-side menu and run `wget -O - https://get.hacs.xyz | bash -` to install `Home Assistant Community Store (HACS)`
+1. Go to `Settings->Devices & services`, click `Add integration` at the bottom right, search for `HACS`, acknowledge the statements and click `SUBMIT`
+1. Link HACS to your GitHub account (read-only access)
+1. Open `HACS` in the left-side menu and search for the addon `Simple OpenID Connect (OIDC / SSO)` by user `cavefire`, install it
+1. Open `/homeassistant/configuration.yaml`, e.g. by using the `Terminal & SSH` addon
+1. Enter the following config at the bottom of the file:
+```
+homeassistant:
+    external_url: https://hass.DOMAIN.COM
+    internal_url: http://LOCAL_HASS_SERVER_IP:8123
+
+http:
+    use_x_forwarded_for: true
+    trusted_proxies:
+        - LOCAL_TRAEFIK_SERVER_IP
+
+openid:
+    client_id: FROM_AUTHENTIK
+    client_secret: FROM_AUTHENTIK
+    configure_url: "https://auth.DOMAIN.COM/application/o/home-assistant/.well-known/openid-configuration"
+    username_filed: "preferred_username"
+    scope: "openid profile email"
+    block_login: true
+    trusted_ips: #List of CIDR blocks that are not affected by block_login
+        - "10.0.0.0/24" # e.g.
+    openid_text: "Login with Authentik" # Text to display on the login page
+    create_user: true # Automatically create users on first login
+```
