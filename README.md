@@ -458,6 +458,28 @@ Authentik has a community integration for Immich to allow user login and provisi
 Authentik doesn't have an outright integration for Inventree but Inventree supports general OIDC.
 
 #### 4.6.1 Authentik settings
+1. Go to `Customization->Propery Mappings` and click `Create`
+1. Select `Scope Mapping` and click `Next`
+1. Enter the following:
+    - Name: `Inventree Profile Mapping`
+    - Scope name: `profile`
+    - Description: `Split Authentik displayname into separate First and Last Name entities for conformity with how Inventree handles user names`
+    - Expression:
+    ```
+    name_parts = request.user.name.split(" ", 1)
+    given = name_parts[0]
+    family = name_parts[1] if len(name_parts) > 1 else ""
+
+    return {
+        "name": request.user.name,
+        "given_name": given,
+        "family_name": family,
+        "preferred_username": request.user.username,
+        "nickname": request.user.username,
+        "groups": [group.name for group in request.user.ak_groups.all()],
+    }
+    ```
+1. Click `Finish`
 1. Go to `Applications->Providers` and click `Create`
 1. Select `OAuth2/OpenID Provider` and click `Next`
 1. Enter the following:
@@ -468,6 +490,8 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
         - `https://parts.DOMAIN.COM/accounts/authentik/login/callback/`
         - `https://inventree.DOMAIN.COM/accounts/authentik/login/callback/`
 1. Take note of the `Client ID` and `Client Secret`, we will need these in the Inventree setup
+1. Expand the `Advanced protocol settings` section and look at th e `Selected Scopes` list
+1. Remove `authentik default OAuth Mapping: OpenID 'profile'` and add `Inventree Profile Mapping`
 1. Click `Finish`
 1. Go to `Applications->Applications` and click `Create`
 1. Enter the following:
@@ -479,7 +503,7 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
 #### 4.6.2 Inventree settings
 1. Log in as superuser/admin and go to `Admin Center`
 1. Under `Operations->Users / Access`, expand the `Groups` section and add groups called `Admins` and `Users`
-1. Go to `System Settings`
+1. Go to `System Settings->Authentication`
 1. Make sure that the following options are **ON**:
     - Enable SSO
     - Enable SSO registration
@@ -488,7 +512,7 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
     - Remove groups outside of SSO
 1. Make sure that the following option is **OFF**:
     - Enable registration
-1. Set `SSO group map` to `{"inventree Users": "Users", "inventree Admins": "Admins"}`
+1. Set `SSO group map` to `{"inventree Admins": "Admins"}`
 1. Set `Group on signup` to `Users`
 1. Go to the Django admin panel by entering `https://inventree.DOMAIN.COM/admin/`, scroll down to `SOCIAL ACCOUNTS` and click on `Social applications`
 1. Click `ADD SOCIAL APPLICATION +` and enter:
@@ -499,6 +523,8 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
     - Secret key: As per the Authentik Provider
     - Settings: `{"server_url": "https://auth.DOMAIN.COM/application/o/inventree/"}`
 1. Click `SAVE`
+
+Note that you will need to promote users to staff/superuser status manually as at the time of writing there's no natively supported way to automate it.
 
 ### 4.7 Home-Assistant
 #### 4.7.1 Authentik settings
