@@ -83,6 +83,20 @@ services:
     volumes:
       - cache:/data/
 
+  ldap:
+    image: ghcr.io/goauthentik/ldap:${AUTHENTIK_TAG:?}
+    container_name: authentik-ldap
+    restart: unless-stopped
+    environment:
+      AUTHENTIK_HOST: http://authentik-server:9000
+      AUTHENTIK_INSECURE: "true"
+      AUTHENTIK_TOKEN: ${AUTHENTIK_LDAP_TOKEN:?}
+    networks:
+      - authentik
+      - traefik
+    depends_on:
+      - server
+
   db:
     image: postgres:17.5-alpine
     container_name: authentik-db
