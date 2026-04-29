@@ -90,7 +90,7 @@ services:
     environment:
       AUTHENTIK_HOST: http://authentik-server:9000
       AUTHENTIK_INSECURE: "true"
-      AUTHENTIK_TOKEN: ${AUTHENTIK_LDAP_TOKEN:?}
+      AUTHENTIK_TOKEN: ${AUTHENTIK_LDAP_TOKEN}
     networks:
       - authentik
       - traefik
