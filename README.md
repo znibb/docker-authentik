@@ -31,6 +31,11 @@ Docker container for use as Identity Provider and authentication portal in front
   - [4.6 Inventree settings](#46-inventree)
     - [4.6.1 Authentik settings](#461-authentik-settings)
     - [4.6.2 Inventree settings](#462-inventree-settings)
+  - [4.7 Home-Assistant](#47-home-assistant)
+    - [4.7.1 Authentik settings](#471-authentik-settings)
+    - [4.7.2 Home-Assistant settings](#472-home-assistant-settings)
+  - [4.8 Jellyfin settings](#47-jellyfin)
+    - [4.8.1 Authentik settings](#481-authentik-settings)
 
 ## 1. Docker Setup
 1. Initialize config by running init.sh: `./init.sh`
@@ -545,7 +550,7 @@ Note that you will need to promote users to staff/superuser status manually as a
     - Provider: `HomeAssistant Provider`
 1. Click `Create`
 
-#### 4.7.2 HomeAssistant settings
+#### 4.7.2 Home-Assistant settings
 1. Log into HomeAssistant as the admin user via local ip
 1. Install the `Terminal & SSH` addon by going to `Settings->Add-ons`, clicking on the `Add-on store` button at the bottom right, searching for `Terminal & SSH` and clicking `Install`
 1. Click `Terminal` in the left-side menu and run `wget -O - https://get.hacs.xyz | bash -` to install `Home Assistant Community Store (HACS)`
@@ -576,3 +581,47 @@ openid:
     openid_text: "Login with Authentik" # Text to display on the login page
     create_user: true # Automatically create users on first login
 ```
+
+### 4.8 Jellyfin
+We're not using Authentik middleware here but instead relying on LDAP for automating user setup and logging in via the regular Jellyfin login
+
+#### 4.8.1 Authentik settings
+1. Create a LDAP service account for the LDAP plugin in Jellyfin to use to lookup users (read-only) by going to `Directory->Users->Create Service account` and entering:
+- Username: `jellyfin-ldap`
+- Create group: `Disable`
+- Expiring: `Disable`
+1. Click `Create` and take note of the generated `Password`, click `Close`
+1. Create an LDAP provider by going to `Applications->Providers->Create->LDAP Provider` and entering:
+- Name: `Jellyfin LDAP`
+- Bind mode: `Direct binding`
+- Search mode: `Direct querying`
+- Code-based MFA Support: `Disabled`
+- Bind flow: `default-authentication-flow`
+- Unbind flow: `default-invalidation-flow`
+- Base DN: Leave as default (`DC=ldap,DC=goauthentik,DC=)
+1. Click `Finish`
+1. Create a matching Application by going to `Applications->Applications->Create` and entering:
+- Name: `Jellyfin`
+- Slug: `jellyfin`
+- Provider: `Jellyfin LDAP`
+1. Click `Create`
+1. Create an LDAP outpost by going to `Applications->Outposts->Create` and entering:
+- Name: `Jellyfin LDAP Outpost`
+- Type: `LDAP`
+1. Move the `Jellyfin` application to `Selected Applications`
+1. Click `Create`
+1. Click the `View Deployment Info` on the newly create outpost and then on `Click to copy token` under `AUTHENTIK_TOKEN`
+1. Click `Close`
+1. Open your `.env` file and set `AUTHENTIK_LDAP_TOKEN` to the value you just copied from the outpost
+
+#### 4.8.2 Jellyfin settings
+1. Install the LDAP plugin by logging in as an admin account and going to `Dashboard->Catalog` and locating `LDAP Authentication` and clicking `Install`
+1. Restart jellyfin: `docker compose up -d --force-recreate jellyfin`
+1. Configure the plugin with the following:
+- LDAP Server: `authentik-ldap`
+- LDAP Port: `389`
+- Bind User: `cn=ldapservice,ou=serviceaccounts,dc=ldap,dc=goauthentik,dc=io`
+- Bind Password: The password for the `Service account` you created earlier
+- Base DN: `dc=ldap,dc=goauthentik,dc=io`
+- User filter: `(objectClass=user)`
+- Username attribute: `cn`
