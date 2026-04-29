@@ -3,6 +3,8 @@ Docker container for use as Identity Provider and authentication portal in front
 
 ## Table of Contents: <!-- omit from toc -->
 - [1. Docker Setup](#1-docker-setup)
+- [1.1 Troubleshooting](#11-troubleshooting)
+- [1.1.1 Lost MFA token](#111-lost-mfa-token)
 - [2. Authentik Setup](#2-authentik-setup)
   - [2.1. Set up your first user](#21-set-up-your-first-user)
   - [2.2. Configuring Authentik Embedded Outpost](#22-configuring-authentik-embedded-outpost)
@@ -43,6 +45,13 @@ Docker container for use as Identity Provider and authentication portal in front
 1. Generate postgresql password and authentik secret key, by using e.g. `openssl rand 56 | base64`, and input into `.env`
 1. Make sure that Docker network `traefik` exists, `docker network ls`
 1. Run `docker compose up` and check logs
+
+### 1.1 Troubleshooting
+#### 1.1.1 Lost MFA token
+1. Find the TOTP table name: `docker exec authentik-db psql -U authentik -c "\dt *totp*"` (probably named `authentik_stages_authenticator_totp_totpdevice`)
+1. Delete TOTP device for USER: `docker exec authentik-db psql -U authentik -c "DELETE FROM authentik_stages_authenticator_totp_totpdevice WHERE user_id = (SELECT id FROM authentik_core_user WHERE username = '<USER>');"`
+1. Log in with the USER account and you should be promted to connect a new MFA device
+
 
 ## 2. Authentik Setup
 Updated for version 2025.6.3
