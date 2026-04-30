@@ -38,6 +38,7 @@ Docker container for use as Identity Provider and authentication portal in front
     - [4.7.2 Home-Assistant settings](#472-home-assistant-settings)
   - [4.8 Jellyfin settings](#47-jellyfin)
     - [4.8.1 Authentik settings](#481-authentik-settings)
+    - [4.8.2 Jellyfin settings](#482-jellyfin-settings)
 
 ## 1. Docker Setup
 1. Initialize config by running init.sh: `./init.sh`
@@ -331,7 +332,7 @@ Make sure usernames are immutable by going to `System->Settings` in the `Admin I
 1. In `Expression` enter the following:
    ```
     # Extract all groups the user is a member of
-    groups = [group.name for group in user.ak_groups.all()]
+    groups = [group.name for group in user.groups.all()]
 
     # Nextcloud admins must be members of a group called "admin".
     # This is static and cannot be changed.
@@ -595,25 +596,74 @@ openid:
 We're not using Authentik middleware here but instead relying on LDAP for automating user setup and logging in via the regular Jellyfin login
 
 #### 4.8.1 Authentik settings
+First we need to setup a flow for allowing the service account access
+
+1. Create a LDAP service password stage by going to `Flows and Stages->Stages->Create` and entering:
+- Select type: `Password Stage`
+- Name: `ldap-service-password`
+- Backends: `User database + standard password` (only)
+1. Click `Finish`
+
+1. Create an Identificaton Stage by going to `Flows and Stages->Stages->Create` and entering:
+- Select type: `Identification Stage`
+- Name: `ldap-service-identification`
+- User fields: `Username`
+- Password stage: `ldap-service-password`
+1. Click `Finish`
+
+1. Create a User Login stage by goign to `Flows and Stages->Stages->Create` and entering:
+- Select type: `User Login Stage`
+- Name: `ldap-service-login`
+1. Click `Finish`
+
+1. Create an authentication flow specifically for LDAP service accounts by going to `Flows and Stages->Flows->Create` and entering:
+- Name: `LDAP Service Account Bind`
+- Title: `LDAP Service Account Bind`
+- Slug: `ldap-service-account-bind`
+- Designation: `Authentication`
+- Authentication: `No requirement`
+1. Click `Create`
+1. Open the created flow and go to the `Stage Bindings` tab
+1. Click `Bind existing Stage` and enter:
+- Stage: `ldap-service-identification`
+- Order: 10
+1. Click `Create`
+1. Click `Bind existing Stage` again and enter: 
+- Stage: `ldap-service-login`
+- Order: 30
+1. Click `Create`
+
 1. Create a LDAP service account for the LDAP plugin in Jellyfin to use to lookup users (read-only) by going to `Directory->Users->Create Service account` and entering:
 - Username: `jellyfin-ldap`
 - Create group: `Disable`
 - Expiring: `Disable`
 1. Click `Create` and take note of the generated `Password`, click `Close`
+
+1. Create a role for LDAP search by going to `Directory->Roles->Create`, naming it `LDAP Search` and clicking `Create`
+1. Go to `Applications->Providers` and click on the `Jellyfin LDAP` provider (not edit)
+1. Go to the `Permissions` tab, click `Assign Object Permission` and enter:
+- Role: `LDAP Search`
+- Search full LDAP directory: Enabled
+1. Click `Assign`
+1. Go to `Directory->Users->jellyfin-ldap->Roles`
+1. Click `Add to existing role`, select the `LDAP Search`role and click `Add`, then `Add` again
+
 1. Create an LDAP provider by going to `Applications->Providers->Create->LDAP Provider` and entering:
 - Name: `Jellyfin LDAP`
 - Bind mode: `Direct binding`
 - Search mode: `Direct querying`
 - Code-based MFA Support: `Disabled`
-- Bind flow: `default-authentication-flow`
+- Bind flow: `ldap-service-account-bind` (has to be flow without MFA enforced!)
 - Unbind flow: `default-invalidation-flow`
-- Base DN: Leave as default (`DC=ldap,DC=goauthentik,DC=)
+- Base DN: Leave as default (`DC=ldap,DC=goauthentik,DC=io)
 1. Click `Finish`
+
 1. Create a matching Application by going to `Applications->Applications->Create` and entering:
 - Name: `Jellyfin`
 - Slug: `jellyfin`
 - Provider: `Jellyfin LDAP`
 1. Click `Create`
+
 1. Create an LDAP outpost by going to `Applications->Outposts->Create` and entering:
 - Name: `Jellyfin LDAP Outpost`
 - Type: `LDAP`
@@ -622,6 +672,7 @@ We're not using Authentik middleware here but instead relying on LDAP for automa
 1. Click the `View Deployment Info` on the newly create outpost and then on `Click to copy token` under `AUTHENTIK_TOKEN`
 1. Click `Close`
 1. Open your `.env` file and set `AUTHENTIK_LDAP_TOKEN` to the value you just copied from the outpost
+1. Restart the LDAP container: `docker compose up -d --force-restart ldap`
 
 #### 4.8.2 Jellyfin settings
 1. Install the LDAP plugin by logging in as an admin account and going to `Dashboard->Catalog` and locating `LDAP Authentication` and clicking `Install`
