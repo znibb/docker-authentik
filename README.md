@@ -195,6 +195,12 @@ If users forget their password it's nice if they're able to reset their password
 1. Go to `Flows and Stages->Stages` and click `Edit` for the `default-authentication-identification` stage
 1. Under `Flow settings->Recovery flow` select `recovery (Recovery)` and click `Update`
 
+To be able to manually generate a recovery link for a user also:
+1. Go to `System->Brands` and click `Edit` for the relevant brand (probably `authentik-default`)
+1. Expand the `Default flows` section and set `Recovery flow` to `recovery (Recovery)`
+1. Click `Update`
+
+
 ### 3.6. Invitation
 It's a bad idea to allow anyone visiting the login page to register for an account. Invitation link with a set expiration time is a better solution.
 
