@@ -497,7 +497,7 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
         "family_name": family,
         "preferred_username": request.user.username,
         "nickname": request.user.username,
-        "groups": [group.name for group in request.user.ak_groups.all()],
+        "groups": [group.name for group in request.user.groups.all()],
     }
     ```
 1. Click `Finish`
