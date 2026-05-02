@@ -3,42 +3,44 @@ Docker container for use as Identity Provider and authentication portal in front
 
 ## Table of Contents: <!-- omit from toc -->
 - [1. Docker Setup](#1-docker-setup)
-- [1.1 Troubleshooting](#11-troubleshooting)
-- [1.1.1 Lost MFA token](#111-lost-mfa-token)
+  - [1.1. Troubleshooting](#11-troubleshooting)
+    - [1.1.1. Lost MFA token](#111-lost-mfa-token)
 - [2. Authentik Setup](#2-authentik-setup)
   - [2.1. Set up your first user](#21-set-up-your-first-user)
   - [2.2. Configuring Authentik Embedded Outpost](#22-configuring-authentik-embedded-outpost)
   - [2.3. Configuring Traefik](#23-configuring-traefik)
-- [3. Autentik configuration](#3-autentik-configuration)
+- [3. Authentik configuration](#3-authentik-configuration)
   - [3.1. Check if email config is correct](#31-check-if-email-config-is-correct)
-  - [3.2. Showing both username and password prompt at once on login screen](#32-showing-both-username-and-password-prompt-at-once-on-login-screen)
+  - [3.2. Condensed login screen](#32-condensed-login-screen)
   - [3.3. Password complexity policy](#33-password-complexity-policy)
   - [3.4. MFA forced on login](#34-mfa-forced-on-login)
   - [3.5. Password recovery](#35-password-recovery)
   - [3.6. Invitation](#36-invitation)
 - [4. Applications setup](#4-applications-setup)
-  - [4.1. API calls bypassing authentication](#41-api-calls-bypassing-authentication)
-  - [4.2. Servarr](#42-servarr)
-    - [4.2.1. Traefik changes](#421-traefik-changes)
-    - [4.2.2. Authentik settings](#422-authentik-settings)
-  - [4.3. Nextcloud](#43-nextcloud)
+  - [4.1. Home-Assistant](#41-home-assistant)
+    - [4.1.1. Authentik settings](#411-authentik-settings)
+    - [4.1.2. Application settings](#412-application-settings)
+  - [4.2. Immich](#42-immich)
+    - [4.2.1. Authentik settings](#421-authentik-settings)
+    - [4.2.2. Application settings](#422-application-settings)
+  - [4.3. Inventree](#43-inventree)
     - [4.3.1. Authentik settings](#431-authentik-settings)
-    - [4.3.2. Nextcloud settings](#432-nextcloud-settings)
-  - [4.4. Synology NAS](#44-synology-nas)
+    - [4.3.2. Application settings](#432-application-settings)
+  - [4.4. Jellyfin](#44-jellyfin)
     - [4.4.1. Authentik settings](#441-authentik-settings)
-    - [4.4.2. Synology DSM settings](#442-synology-dsm-settings)
-  - [4.5. Immich settings](#45-immich)
+    - [4.4.2. Application settings](#442-application-settings)
+- [2.8 Jellyseerr](#28-jellyseerr)
+    - [2.8.1 Authentik settings](#281-authentik-settings)
+    - [2.8.2 Application settings](#282-application-settings)
+  - [4.5. Nextcloud](#45-nextcloud)
     - [4.5.1. Authentik settings](#451-authentik-settings)
-    - [4.5.2. Immich settings](#452-immich-settings)
-  - [4.6 Inventree settings](#46-inventree)
-    - [4.6.1 Authentik settings](#461-authentik-settings)
-    - [4.6.2 Inventree settings](#462-inventree-settings)
-  - [4.7 Home-Assistant](#47-home-assistant)
-    - [4.7.1 Authentik settings](#471-authentik-settings)
-    - [4.7.2 Home-Assistant settings](#472-home-assistant-settings)
-  - [4.8 Jellyfin settings](#47-jellyfin)
-    - [4.8.1 Authentik settings](#481-authentik-settings)
-    - [4.8.2 Jellyfin settings](#482-jellyfin-settings)
+    - [4.5.2. Application settings](#452-application-settings)
+  - [4.6. Servarr](#46-servarr)
+    - [4.6.1. Traefik changes](#461-traefik-changes)
+    - [4.6.2. Authentik settings](#462-authentik-settings)
+  - [4.7. Synology NAS](#47-synology-nas)
+    - [4.7.1. Authentik settings](#471-authentik-settings)
+    - [4.7.2. Application settings](#472-application-settings)
 
 ## 1. Docker Setup
 1. Initialize config by running init.sh: `./init.sh`
@@ -47,8 +49,8 @@ Docker container for use as Identity Provider and authentication portal in front
 1. Make sure that Docker network `traefik` exists, `docker network ls`
 1. Run `docker compose up` and check logs
 
-### 1.1 Troubleshooting
-#### 1.1.1 Lost MFA token
+### 1.1. Troubleshooting
+#### 1.1.1. Lost MFA token
 1. Find the TOTP table name: `docker exec authentik-db psql -U authentik -c "\dt *totp*"` (probably named `authentik_stages_authenticator_totp_totpdevice`)
 1. Delete TOTP device for USER: `docker exec authentik-db psql -U authentik -c "DELETE FROM authentik_stages_authenticator_totp_totpdevice WHERE user_id = (SELECT id FROM authentik_core_user WHERE username = '<USER>');"`
 1. Log in with the USER account and you should be promted to connect a new MFA device
@@ -124,19 +126,19 @@ You have now set up Authentik to be ready to be used with Traefik reverse-proxy 
 
 Now you can use Authentik together with Traefik by including the authentik middleware in container labels, e.g.: `traefik.http.routers.APP_NAME.middlewares=authentik@file`.
 
-## 3. Autentik configuration
+## 3. Authentik configuration
 ### 3.1. Check if email config is correct
 To verify that the email settings in `.env` are correct run `docker compose exec worker ak test_email RECIPIENT_EMAIL` to send a test email to `RECIPIENT_EMAIL`.
 
-### 3.2. Showing both username and password prompt at once on login screen
+### 3.2. Condensed login screen
 Certain password managers will have an easier time auto-typing your login info if the username and password fields are both presented at once.
 
 1. Go to `Flows and Stages->Stages` and click `Edit` for the `default-authentication-identification` stage
-1. Under `Password stage` select `default-authentication-password`
-1. (Optional) Enable `Enable "Remember me on this device"`
-1. Click `Update`
-1. Go to `Flows and Stages->Flows` and click the `default-authentication-flow` stage
-1. Go to the `Stage Bindings` tab and delete the `default-authentication-password` stage
+2. Under `Password stage` select `default-authentication-password`
+3. (Optional) Enable `Enable "Remember me on this device"`
+4. Click `Update`
+5. Go to `Flows and Stages->Flows` and click the `default-authentication-flow` stage
+6. Go to the `Stage Bindings` tab and delete the `default-authentication-password` stage
 
 ### 3.3. Password complexity policy
 It's a good idea to enforce some kind of password policy.
@@ -249,201 +251,61 @@ You can now go to `Directory->Invitations` and click `Create` to create an invit
 1. Expand the recently created invite and `Link to use the invitation` will contain the link to be distributed.
 
 ## 4. Applications setup
-### 4.1. API calls bypassing authentication
-If you want to allow API calls to a certain application to bypass authentication simply add `^\/api\/.*` to `Advanced protocol settings->Unauthenticated Paths` under the relevant Provider.
-
-### 4.2. Servarr
-Authentik can be set up to contain the user//pass for the HTTP logins for the various Servarr apps and to forward credentials to the respective app after authentication via Authentik. This way you can keep authentication activated for each app but still only have to log in once when going through Authentik.
-
-#### 4.2.1. Traefik changes
-1. Go to your Traefik dir and open your `dynamic_config.yml`
-1. Create a middleware similar to the one in the general Traefik setup above but including the `authorization` header (this is required for Authentik to be able to forward the credentials):
-    ```
-    middlewares:
-        authentik-auth-http:
-            forwardAuth:
-                # Match base url to authentik server container name
-                address: http://authentik-server:9000/outpost.goauthentik.io/auth/traefik
-                trustForwardHeader: true
-                authResponseHeaders:
-                    - X-authentik-username
-                    - X-authentik-groups
-                    - X-authentik-email
-                    - X-authentik-name
-                    - X-authentik-uid
-                    - X-authentik-jwt
-                    - X-authentik-meta-jwks
-                    - X-authentik-meta-outpost
-                    - X-authentik-meta-provider
-                    - X-authentik-meta-app
-                    - X-authentik-meta-version
-                    - authorization
-    ```
-1. Optionally create a middleware chain similar to above:
-    ```
-    middlewares:
-        authentik-http:
-            chain:
-                middlewares:
-                    - authentik-auth-http
-                    - default-security-headers
-    ```
-
-For the services where you want to use the HTTP-Basic authentication forwarding via Authentik you need to replace the default authentik middleware chain with the `authentik-http` created above instead.
-
-#### 4.2.2. Authentik settings
-1. Open the Authentik Admin Interface
-1. Go to `Directory->Groups` and click `Create`
-1. Set a suitable name, e.g. `Servarr Users`
-1. Under `Attributes` input a list of usernames//passwords for the different Servarr apps, e.g.:
-    - prowlarr_user: PROWLARR_USERNAME
-    - prowlarr_password: PROWLARR_PASSWORD
-    - sonarr_user: SONARR_USERNAME
-    - sonarr_password: SONARR_PASSWORD
-    - etc...
-1. Click `Create`
-1. Click on the recently created group, go to the `Users` tab and click `Add existing user`
-1. Click the plus sign, select the users you want to be able to access the Servarr apps, click `Add` and then `Add` again
-1. Go to `Applications->Providers` and click `Create`
-1.  Select `Proxy Provider` and click `Next`
-1. Set a suitable name, e.g. `Prowlarr Provider` and select `implicit-concent` under `Authorization flow`
-1. Click `Forward auth (single application)`
-1. Set `External host` to the externally accessible address for the app, e.g. `https://prowlarr.DOMAIN.COM`
-1. Expand `Authntication settings` and make sure that both `Intercept header authentication` and `Send HTTP-Basic Authentication` are **ON**
-1. Set `HTTP-Basic Username Key` and `HTTP-Basic Password Key` to `prowlarr_user` and `prowlarr_password` respectively (matching the keys in the list set up above)
-1. Click `Finish`
-1. *Repeat Provider creation for each individual app in your stack*
-1. Go to `Applications->Applications` and click `Create`
-1. Set a suitable name, e.g. `Prowlarr` and the slug similarly to `prowlarr`
-1. Under `Provider` select the `Prowlarr Provider` created previously and click `Create`
-1. *Repeat Application creation for each individual app in your stack*
-1. Go to `Applications->Outposts` and open `authentik Embedded Outpost` for editing
-1. Under `Applications` select each application created previously and click > to add them to `Selected Applications
-1. Click `Update`
-1. The previously created providers should now be listed in the `Providers` tab for `authentik Embedded Outpost`
-
-### 4.3. Nextcloud
-Authentik has a community integration for Nextcloud to allow user login and provisioning via Authentik.
-
-#### 4.3.1. Authentik settings
-Make sure usernames are immutable by going to `System->Settings` in the `Admin Interface` and checking that `Allow users to change username` is **OFF**.
-
-1. Open the Authentik Admin Interface
-1. Go to `Directory->Groups` and click `Create`
-1. Create a group called `nextcloud Admins`, this will control which users are given admin permissions in `Nextcloud`
-1. Create a group called `nextcloud Users`, this will control which users are allowed to access `Nextcloud` (to prevent Nextcloud accounts from being provisioned for users who aren't supposed to have access)
-1. Go to `Customization->Property Mappings` and click `Create`
-1. Select `Scope Mapping` and click `Next`
-1. Set `Name` to `Nextcloud Profile` and `Scope name` to `profile`
-1. In `Expression` enter the following:
-   ```
-    # Extract all groups the user is a member of
-    groups = [group.name for group in user.groups.all()]
-
-    # Nextcloud admins must be members of a group called "admin".
-    # This is static and cannot be changed.
-    # We append a fictional "admin" group to the user's groups if they are a member of "nextcloud Admins" in authentik.
-    # This group would only be visible in Nextcloud and does not exist in authentik.
-    if "nextcloud Admins" in groups:
-        groups = ["admin"]
-    else:
-        groups = []
-
-    return {
-        # Display name
-        "name": request.user.name,
-        "groups": groups,
-        # To set a quota set the "nextcloud_quota" property in the user's attributes
-        "quota": user.group_attributes().get("nextcloud_quota", None),
-        # To connect an already existing user, set the "nextcloud_user_id" property in the
-        # user's attributes to the username of the corresponding user on Nextcloud.
-        # Uses the Authentik username if attribute is not set.
-        "user_id": user.attributes.get("nextcloud_user_id", str(user.username)),
-    }
-    ```
-1. Click `Finish`
+### 4.1. Home-Assistant
+#### 4.1.1. Authentik settings
 1. Go to `Applications->Providers` and click `Create`
 1. Select `OAuth2/OpenID Provider` and click `Next`
 1. Enter the following:
-    - Name: `Nextcloud Provider`
-    - Authorization flow: `implicit-consent`
+    - Name: `HomeAssistant Provider`
+    - Authorization flow:: `implicit-consent`
     - Client type: `Confidential`
-    - Redirect URIs/Origins (RegEx): `https://nc.DOMAIN.COM/apps/user_oidc/code` (make sure you're using the correct path prefix)
-1. Under `Advanced protocol settings->Scopes` select:
-    - `authentik default OAuth Mapping: OpenID 'email'`
-    - `authentik default OAuth Mapping: OpenID 'openid'`
-    - `authentik default OAuth Mapping: OpenID 'profile'`
-    - `Nextcloud Profile`
-1. Make sure that `Advanced protocol settings->Subject mode: Based on the User's username` is selected
-1. Make sure that `Include claims in id_token` at the bottom is **ON**
-1. Take note of your `Client ID` and `Client Secret`, you will use this in the Nextcloud stage
-1. Go to `Applications->Applications` and click `Create`
-1. Enter the following:
-    - Name: `Nextcloud`
-    - Slug: `nextcloud`
-    - Provider: `Nextcloud Provider`
-1. Click `Create`
-1. Click on the recently created application and go to the `Policy / Group/ User Bindings` tab
-1. Click `Bind existing Policy / Group / User`, select the `Group` option and then select the `nextcloud Users` group
-
-To map an Authentik user to an existing Nextcloud account give the user an attribute like `nextcloud_user_id: NEXTCLOUD_ACCOUNT_NAME`. To give a user a quota limit give it an atrtibute like `nextcloud_quota: 10 GB`.
-
-#### 4.3.2. Nextcloud settings
-1. Log into the web UI using an admin account, click on the profile icon in the top-right and then click on `Apps`
-1. Select the `Integration` category to the left and look for `OpenID Connect user backend`, enable it
-1. Go to the top-right menu again and this time click `Administration Settings`
-1. In the left-side menu list click on `OpenID Connect`
-1. Click the plus sign under `Registered Providers` and enter the following:
-   - Identifier: `Authentik`
-   - Client ID: See the [Authentik section](#421-authentik-settings)
-   - Client secret: See the [Authentik section](#421-authentik-settings)
-   - Discovery endpoint: `https://auth.DOMAIN.COM/application/o/nextcloud/.well-known/openid-configuration`
-   - Scope: `openid email profile`
-   - User ID mapping: `user_id`
-   - Quota mapping: `quota`
-   - Groups mapping: `groups` (Requires `Use group provisioning` to be checked further down)
-   - Display name mapping: `name` (Under `Extra attributes mapping`)
-   - Email mapping: `email` (Under `Extra attributes mapping`)
-   - Use unique user id: Turn this **OFF**
-
-To make Authentik the default login method for Nextcloud go to your Nextcloud docker directory and run `docker compose exec -u www-data nextcloud php occ config:app:set --value=0 user_oidc allow_multiple_user_backends`.
-
-### 4.4. Synology NAS
-Authentik has a community integration for Synology DSM to allow user login via Authentik.
-
-#### 4.4.1. Authentik settings
-1. Open the Authentik Admin Interface
-1. Go to `Applications->Providers` and click `Create`
-1. Select `OAuth2/OpenID Provider` and click `Next`
-1. Enter the following:
-   - Name: Synology Provider
-   - Authorization flow: implicit-consent
-   - Client type: `Confidential`
-   - Redirect URIs/Origins (RegEx): `https://nas.DOMAIN.COM/#/signin` (use whatever subdomain you set up in your Traefik dynamic_config.yml)
-   - Subject mode: `Based on the User's username`
+    - Redirect URIs/Origins (RegEx): Strict,
+        - `https://hass.DOMAIN.COM/auth/openid/callback`
+1. Take note of the `Client ID` and `Client Secret`, we will need transfer these into HomeAssistant config
 1. Click `Finish`
 1. Go to `Applications->Applications` and click `Create`
-1. Enter `Name`//`Slug` as `NAS`//`nas` and select the recently created provider, click `Create`
-
-#### 4.4.2. Synology DSM settings
-1. Log in to DSM with an admin account
-1. Go to `Control Panel->Domain/LDAP` and click on the `SSO Client` tab
-1. Check the `Enable OpenID Connect SSO service` box and click the `OpenID Connect SSO Settings` button below it
 1. Enter the following:
-   - Name: `Authentik`
-   - Wellknown URL: `https://auth.DOMAIN.COM/application/o/nas/.well-known/openid-configuration`
-   - Application ID: Client ID from the Synology Provider
-   - Application Key: Client Secret from the Synology Provider
-   - Redirect URL: `https://nas.DOMAIN.COM/#/signin`
-   - Authorization scope: `openid profile email`
-   - Username claim: `preferred_username`
+    - Name: `HomeAssistant`
+    - Slug: `home-assistant`
+    - Provider: `HomeAssistant Provider`
+1. Click `Create`
 
-Currently doesn't work properly with DSM <7.2 so TBC...
+#### 4.1.2. Application settings
+1. Log into HomeAssistant as the admin user via local ip
+1. Install the `Terminal & SSH` addon by going to `Settings->Add-ons`, clicking on the `Add-on store` button at the bottom right, searching for `Terminal & SSH` and clicking `Install`
+1. Click `Terminal` in the left-side menu and run `wget -O - https://get.hacs.xyz | bash -` to install `Home Assistant Community Store (HACS)`
+1. Go to `Settings->Devices & services`, click `Add integration` at the bottom right, search for `HACS`, acknowledge the statements and click `SUBMIT`
+1. Link HACS to your GitHub account (read-only access)
+1. Open `HACS` in the left-side menu and search for the addon `Simple OpenID Connect (OIDC / SSO)` by user `cavefire`, install it
+1. Open `/homeassistant/configuration.yaml`, e.g. by using the `Terminal & SSH` addon
+1. Enter the following config at the bottom of the file:
+```
+homeassistant:
+    external_url: https://hass.DOMAIN.COM
+    internal_url: http://LOCAL_HASS_SERVER_IP:8123
 
-### 4.5 Immich
+http:
+    use_x_forwarded_for: true
+    trusted_proxies:
+        - LOCAL_TRAEFIK_SERVER_IP
+
+openid:
+    client_id: FROM_AUTHENTIK
+    client_secret: FROM_AUTHENTIK
+    configure_url: "https://auth.DOMAIN.COM/application/o/home-assistant/.well-known/openid-configuration"
+    username_filed: "preferred_username"
+    scope: "openid profile email"
+    block_login: true
+    trusted_ips: #List of CIDR blocks that are not affected by block_login
+        - "10.0.0.0/24" # e.g.
+    openid_text: "Login with Authentik" # Text to display on the login page
+    create_user: true # Automatically create users on first login
+```
+
+### 4.2. Immich
 Authentik has a community integration for Immich to allow user login and provisioning via Authentik.
 
-#### 4.5.1 Authentik settings
+#### 4.2.1. Authentik settings
 1. Open the Authentik Admin Interface
 1. Go to `Applications->Providers` and click `Create`
 1. Select `OAuth2/OpenID Provider` and click `Next`
@@ -464,7 +326,7 @@ Authentik has a community integration for Immich to allow user login and provisi
     - Provider: `Immich Provider`
 1. Click `Create`
 
-#### 4.5.2 Immich settings
+#### 4.2.2. Application settings
 1. Log in with the admin account initially set up for Immich
 1. Click the top-right circle icon and select `Administration`
 1. From the left-side menu select `Settings` and then `Authentication Settings->OAuth`
@@ -475,10 +337,10 @@ Authentik has a community integration for Immich to allow user login and provisi
     - AUTO LAUNCH: Set to ON
 1. Click `Save` at the bottom of the form
 
-### 4.6 Inventree
+### 4.3. Inventree
 Authentik doesn't have an outright integration for Inventree but Inventree supports general OIDC.
 
-#### 4.6.1 Authentik settings
+#### 4.3.1. Authentik settings
 1. Go to `Customization->Propery Mappings` and click `Create`
 1. Select `Scope Mapping` and click `Next`
 1. Enter the following:
@@ -513,6 +375,7 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
 1. Take note of the `Client ID` and `Client Secret`, we will need these in the Inventree setup
 1. Expand the `Advanced protocol settings` section and look at th e `Selected Scopes` list
 1. Remove `authentik default OAuth Mapping: OpenID 'profile'` and add `Inventree Profile Mapping`
+1. Set `Subject mode` to `Based on the User's username`
 1. Click `Finish`
 1. Go to `Applications->Applications` and click `Create`
 1. Enter the following:
@@ -521,7 +384,7 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
     - Provider: `Inventree Provider`
 1. Click `Create`
 
-#### 4.6.2 Inventree settings
+#### 4.3.2. Application settings
 1. Log in as superuser/admin and go to `Admin Center`
 1. Under `Operations->Users / Access`, expand the `Groups` section and add groups called `Admins` and `Users`
 1. Go to `System Settings->Authentication`
@@ -547,61 +410,10 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
 
 Note that you will need to promote users to staff/superuser status manually as at the time of writing there's no natively supported way to automate it.
 
-### 4.7 Home-Assistant
-#### 4.7.1 Authentik settings
-1. Go to `Applications->Providers` and click `Create`
-1. Select `OAuth2/OpenID Provider` and click `Next`
-1. Enter the following:
-    - Name: `HomeAssistant Provider`
-    - Authorization flow:: `implicit-consent`
-    - Client type: `Confidential`
-    - Redirect URIs/Origins (RegEx): Strict,
-        - `https://hass.DOMAIN.COM/auth/openid/callback`
-1. Take note of the `Client ID` and `Client Secret`, we will need transfer these into HomeAssistant config
-1. Click `Finish`
-1. Go to `Applications->Applications` and click `Create`
-1. Enter the following:
-    - Name: `HomeAssistant`
-    - Slug: `home-assistant`
-    - Provider: `HomeAssistant Provider`
-1. Click `Create`
-
-#### 4.7.2 Home-Assistant settings
-1. Log into HomeAssistant as the admin user via local ip
-1. Install the `Terminal & SSH` addon by going to `Settings->Add-ons`, clicking on the `Add-on store` button at the bottom right, searching for `Terminal & SSH` and clicking `Install`
-1. Click `Terminal` in the left-side menu and run `wget -O - https://get.hacs.xyz | bash -` to install `Home Assistant Community Store (HACS)`
-1. Go to `Settings->Devices & services`, click `Add integration` at the bottom right, search for `HACS`, acknowledge the statements and click `SUBMIT`
-1. Link HACS to your GitHub account (read-only access)
-1. Open `HACS` in the left-side menu and search for the addon `Simple OpenID Connect (OIDC / SSO)` by user `cavefire`, install it
-1. Open `/homeassistant/configuration.yaml`, e.g. by using the `Terminal & SSH` addon
-1. Enter the following config at the bottom of the file:
-```
-homeassistant:
-    external_url: https://hass.DOMAIN.COM
-    internal_url: http://LOCAL_HASS_SERVER_IP:8123
-
-http:
-    use_x_forwarded_for: true
-    trusted_proxies:
-        - LOCAL_TRAEFIK_SERVER_IP
-
-openid:
-    client_id: FROM_AUTHENTIK
-    client_secret: FROM_AUTHENTIK
-    configure_url: "https://auth.DOMAIN.COM/application/o/home-assistant/.well-known/openid-configuration"
-    username_filed: "preferred_username"
-    scope: "openid profile email"
-    block_login: true
-    trusted_ips: #List of CIDR blocks that are not affected by block_login
-        - "10.0.0.0/24" # e.g.
-    openid_text: "Login with Authentik" # Text to display on the login page
-    create_user: true # Automatically create users on first login
-```
-
-### 4.8 Jellyfin
+### 4.4. Jellyfin
 We're not using Authentik middleware here but instead relying on LDAP for automating user setup and logging in via the regular Jellyfin login
 
-#### 4.8.1 Authentik settings
+#### 4.4.1. Authentik settings
 First we need to setup a flow for allowing the service account access
 
 1. Create a LDAP service password stage by going to `Flows and Stages->Stages->Create` and entering:
@@ -680,7 +492,7 @@ First we need to setup a flow for allowing the service account access
 1. Open your `.env` file and set `AUTHENTIK_LDAP_TOKEN` to the value you just copied from the outpost
 1. Restart the LDAP container: `docker compose up -d --force-restart ldap`
 
-#### 4.8.2 Jellyfin settings
+#### 4.4.2. Application settings
 1. Install the LDAP plugin by logging in as an admin account and going to `Dashboard->Catalog` and locating `LDAP Authentication` and clicking `Install`
 1. Restart jellyfin: `docker compose up -d --force-recreate jellyfin`
 1. Configure the plugin with the following:
@@ -691,3 +503,263 @@ First we need to setup a flow for allowing the service account access
 - Base DN: `dc=ldap,dc=goauthentik,dc=io`
 - User filter: `(objectClass=user)`
 - Username attribute: `cn`
+
+## 2.8 Jellyseerr
+Jellyseerr needs to connect to the Jellyfin server with an account that has admin rights, use the Jellyfin `admin` user you set up earlier.
+
+#### 2.8.1 Authentik settings
+1. Open the Authentik Admin Interface
+1. Go to `Applications->Providers` and click `Create`
+1. Select `OAuth2/OpenID Provider` and click `Next`
+1. Enter the following:
+   - Name: `Jellyseerr Provider`
+   - Authorization flow: implicit-consent
+   - Client type: `Confidential`
+   - Redirect URIs/Origins (RegEx): `^https://jellyseerr\.DOMAIN\.COM/login\?provider=authentik&callback=true.*`
+   - Subject mode: `Based on the User's username`
+1. Take note of your `Client ID` and `Client Secret`, you will need these in the SSO plugin setup in Jellyfin
+1. Click `Finish`
+1. Go to `Applications->Applications` and click `Create`
+1. Enter the following:
+   - Name: `Jellyseerr`
+   - Slug: `jellyseerr`
+   - Provider: `Jellyseerr Provider`
+1. (Optional) If you want to suppress Jellyfin being listed in the Authentik User Interface set `Launch URL` to `blank://blank`
+1. Click `Create`
+
+#### 2.8.2 Application settings
+1. When you first load the page you're met with the setup wizard, click `Configure Jellyfin`
+1. Enter:
+    - Jellyfin URL: `http://jellyfin:8096`
+    - Base URL: Leave blank
+    - Email: Not related to Jellyfin, use whatever
+    - Username: `admin`
+    - Password: The password you set up for the Jellyfin `admin` user previously
+1. Click `Sign in` at the bottom
+1. Click `Sync Libraries` and toggle them on, click `Continue` at the bottom
+1. Radarr Settings:
+    - Default Server: Check
+    - Server Name: Radarr
+    - Hostname: radarr
+    - Port: 7878
+    - API Key: Get from Radarr Settings->General
+    - Click `Test` at the bottom
+    - Quality Profile: Any
+    - Root Folder: /data/movies
+    - Enable Scan: Check
+    - Tag Requests: Check
+1. Click `Add Server` at the bottom
+1. Sonarr Settings:
+    - Default Server: Check
+    - Server Name: Sonarr
+    - Hostname: sonarr
+    - Port: 8989
+    - API Key: Get from Sonarr Settings->General
+    - Click `Test` at the bottom
+    - Quality Profile: Any
+    - Root Folder: /data/tv
+    - Season Folders: Check
+    - Tag Requests: Check
+1. Click `Finish Setup` at the bottom
+1. Go to `Settings->Users`
+1. Uncheck `Enable Local Sign-In` and check `Enable OpenID Connect Sign-In`
+1. In the popup that appears click `Add OpenID Connect Provider` and fill out:
+    - Provider Name: Authentik
+    - Logo: `https://cdn.jsdelivr.net/gh/selfhst/icons/svg/authentik.svg`
+    - Issuer URL: `https://auth.DOMAIN.COM/application/o/jellyseerr`
+    - Client ID: Get from Authentik Provider
+    - Client Secret: Get from Authentik Provider
+    - Provider Slug: `authentik`
+    - Scopes: `email openid profile` (it says `Comma-separated` but use spaces)
+    - Allow New Users: Check
+1. Click `Save Changes` at the bottom, then close the `Configure OpenID Connect` window by clicking `Close`
+1. Finally go to the bottom and click `Save Changes`
+
+### 4.5. Nextcloud
+Authentik has a community integration for Nextcloud to allow user login and provisioning via Authentik.
+
+#### 4.5.1. Authentik settings
+Make sure usernames are immutable by going to `System->Settings` in the `Admin Interface` and checking that `Allow users to change username` is **OFF**.
+
+1. Open the Authentik Admin Interface
+1. Go to `Directory->Groups` and click `Create`
+1. Create a group called `nextcloud Admins`, this will control which users are given admin permissions in `Nextcloud`
+1. Create a group called `nextcloud Users`, this will control which users are allowed to access `Nextcloud` (to prevent Nextcloud accounts from being provisioned for users who aren't supposed to have access)
+1. Go to `Customization->Property Mappings` and click `Create`
+1. Select `Scope Mapping` and click `Next`
+1. Set `Name` to `Nextcloud Profile` and `Scope name` to `profile`
+1. In `Expression` enter the following:
+   ```
+    # Extract all groups the user is a member of
+    groups = [group.name for group in user.groups.all()]
+
+    # Nextcloud admins must be members of a group called "admin".
+    # This is static and cannot be changed.
+    # We append a fictional "admin" group to the user's groups if they are a member of "nextcloud Admins" in authentik.
+    # This group would only be visible in Nextcloud and does not exist in authentik.
+    if "nextcloud Admins" in groups:
+        groups = ["admin"]
+    else:
+        groups = []
+
+    return {
+        # Display name
+        "name": request.user.name,
+        "groups": groups,
+        # To set a quota set the "nextcloud_quota" property in the user's attributes
+        "quota": user.group_attributes().get("nextcloud_quota", None),
+        # To connect an already existing user, set the "nextcloud_user_id" property in the
+        # user's attributes to the username of the corresponding user on Nextcloud.
+        # Uses the Authentik username if attribute is not set.
+        "user_id": user.attributes.get("nextcloud_user_id", str(user.username)),
+    }
+    ```
+1. Click `Finish`
+1. Go to `Applications->Providers` and click `Create`
+1. Select `OAuth2/OpenID Provider` and click `Next`
+1. Enter the following:
+    - Name: `Nextcloud Provider`
+    - Authorization flow: `implicit-consent`
+    - Client type: `Confidential`
+    - Redirect URIs/Origins (RegEx): `https://nc.DOMAIN.COM/apps/user_oidc/code` (make sure you're using the correct path prefix)
+1. Under `Advanced protocol settings->Scopes` select:
+    - `authentik default OAuth Mapping: OpenID 'email'`
+    - `authentik default OAuth Mapping: OpenID 'openid'`
+    - `authentik default OAuth Mapping: OpenID 'profile'`
+    - `Nextcloud Profile`
+1. Make sure that `Advanced protocol settings->Subject mode: Based on the User's username` is selected
+1. Make sure that `Include claims in id_token` at the bottom is **ON**
+1. Take note of your `Client ID` and `Client Secret`, you will use this in the Nextcloud stage
+1. Go to `Applications->Applications` and click `Create`
+1. Enter the following:
+    - Name: `Nextcloud`
+    - Slug: `nextcloud`
+    - Provider: `Nextcloud Provider`
+1. Click `Create`
+1. Click on the recently created application and go to the `Policy / Group/ User Bindings` tab
+1. Click `Bind existing Policy / Group / User`, select the `Group` option and then select the `nextcloud Users` group
+
+To map an Authentik user to an existing Nextcloud account give the user an attribute like `nextcloud_user_id: NEXTCLOUD_ACCOUNT_NAME`. To give a user a quota limit give it an atrtibute like `nextcloud_quota: 10 GB`.
+
+#### 4.5.2. Application settings
+1. Log into the web UI using an admin account, click on the profile icon in the top-right and then click on `Apps`
+1. Select the `Integration` category to the left and look for `OpenID Connect user backend`, enable it
+1. Go to the top-right menu again and this time click `Administration Settings`
+1. In the left-side menu list click on `OpenID Connect`
+1. Click the plus sign under `Registered Providers` and enter the following:
+   - Identifier: `Authentik`
+   - Client ID: See the [Authentik section](#421-authentik-settings)
+   - Client secret: See the [Authentik section](#421-authentik-settings)
+   - Discovery endpoint: `https://auth.DOMAIN.COM/application/o/nextcloud/.well-known/openid-configuration`
+   - Scope: `openid email profile`
+   - User ID mapping: `user_id`
+   - Quota mapping: `quota`
+   - Groups mapping: `groups` (Requires `Use group provisioning` to be checked further down)
+   - Display name mapping: `name` (Under `Extra attributes mapping`)
+   - Email mapping: `email` (Under `Extra attributes mapping`)
+   - Use unique user id: Turn this **OFF**
+
+To make Authentik the default login method for Nextcloud go to your Nextcloud docker directory and run `docker compose exec -u www-data nextcloud php occ config:app:set --value=0 user_oidc allow_multiple_user_backends`.
+
+### 4.6. Servarr
+Authentik can be set up to contain the user//pass for the HTTP logins for the various Servarr apps and to forward credentials to the respective app after authentication via Authentik. This way you can keep authentication activated for each app but still only have to log in once when going through Authentik.
+
+#### 4.6.1. Traefik changes
+1. Go to your Traefik dir and open your `dynamic_config.yml`
+1. Create a middleware similar to the one in the general Traefik setup above but including the `authorization` header (this is required for Authentik to be able to forward the credentials):
+    ```
+    middlewares:
+        authentik-auth-http:
+            forwardAuth:
+                # Match base url to authentik server container name
+                address: http://authentik-server:9000/outpost.goauthentik.io/auth/traefik
+                trustForwardHeader: true
+                authResponseHeaders:
+                    - X-authentik-username
+                    - X-authentik-groups
+                    - X-authentik-email
+                    - X-authentik-name
+                    - X-authentik-uid
+                    - X-authentik-jwt
+                    - X-authentik-meta-jwks
+                    - X-authentik-meta-outpost
+                    - X-authentik-meta-provider
+                    - X-authentik-meta-app
+                    - X-authentik-meta-version
+                    - authorization
+    ```
+1. Optionally create a middleware chain similar to above:
+    ```
+    middlewares:
+        authentik-http:
+            chain:
+                middlewares:
+                    - authentik-auth-http
+                    - default-security-headers
+    ```
+
+For the services where you want to use the HTTP-Basic authentication forwarding via Authentik you need to replace the default authentik middleware chain with the `authentik-http` created above instead.
+
+#### 4.6.2. Authentik settings
+1. Open the Authentik Admin Interface
+1. Go to `Directory->Groups` and click `Create`
+1. Set a suitable name, e.g. `Servarr Users`
+1. Under `Attributes` input a list of usernames//passwords for the different Servarr apps, e.g.:
+    - prowlarr_user: PROWLARR_USERNAME
+    - prowlarr_password: PROWLARR_PASSWORD
+    - sonarr_user: SONARR_USERNAME
+    - sonarr_password: SONARR_PASSWORD
+    - etc...
+1. Click `Create`
+1. Click on the recently created group, go to the `Users` tab and click `Add existing user`
+1. Click the plus sign, select the users you want to be able to access the Servarr apps, click `Add` and then `Add` again
+1. Go to `Applications->Providers` and click `Create`
+1.  Select `Proxy Provider` and click `Next`
+1. Set a suitable name, e.g. `Prowlarr Provider` and select `implicit-concent` under `Authorization flow`
+1. Click `Forward auth (single application)`
+1. Set `External host` to the externally accessible address for the app, e.g. `https://prowlarr.DOMAIN.COM`
+1. Expand `Authntication settings` and make sure that both `Intercept header authentication` and `Send HTTP-Basic Authentication` are **ON**
+1. Set `HTTP-Basic Username Key` and `HTTP-Basic Password Key` to `prowlarr_user` and `prowlarr_password` respectively (matching the keys in the list set up above)
+1. Click `Finish`
+1. *Repeat Provider creation for each individual app in your stack*
+1. Go to `Applications->Applications` and click `Create`
+1. Set a suitable name, e.g. `Prowlarr` and the slug similarly to `prowlarr`
+1. Under `Provider` select the `Prowlarr Provider` created previously and click `Create`
+1. *Repeat Application creation for each individual app in your stack*
+1. Go to `Applications->Outposts` and open `authentik Embedded Outpost` for editing
+1. Under `Applications` select each application created previously and click > to add them to `Selected Applications
+1. Click `Update`
+1. The previously created providers should now be listed in the `Providers` tab for `authentik Embedded Outpost`
+
+### 4.7. Synology NAS
+Authentik has a community integration for Synology DSM to allow user login via Authentik.
+
+#### 4.7.1. Authentik settings
+1. Open the Authentik Admin Interface
+1. Go to `Applications->Providers` and click `Create`
+1. Select `OAuth2/OpenID Provider` and click `Next`
+1. Enter the following:
+   - Name: Synology Provider
+   - Authorization flow: implicit-consent
+   - Client type: `Confidential`
+   - Redirect URIs/Origins (RegEx): `https://nas.DOMAIN.COM/#/signin` (use whatever subdomain you set up in your Traefik dynamic_config.yml)
+   - Subject mode: `Based on the User's username`
+1. Click `Finish`
+1. Go to `Applications->Applications` and click `Create`
+1. Enter `Name`//`Slug` as `NAS`//`nas` and select the recently created provider, click `Create`
+
+#### 4.7.2. Application settings
+1. Log in to DSM with an admin account
+1. Go to `Control Panel->Domain/LDAP` and click on the `SSO Client` tab
+1. Check the `Enable OpenID Connect SSO service` box and click the `OpenID Connect SSO Settings` button below it
+1. Enter the following:
+   - Name: `Authentik`
+   - Wellknown URL: `https://auth.DOMAIN.COM/application/o/nas/.well-known/openid-configuration`
+   - Application ID: Client ID from the Synology Provider
+   - Application Key: Client Secret from the Synology Provider
+   - Redirect URL: `https://nas.DOMAIN.COM/#/signin`
+   - Authorization scope: `openid profile email`
+   - Username claim: `preferred_username`
+
+Currently doesn't work properly with DSM <7.2 so TBC...
+
