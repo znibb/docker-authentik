@@ -29,18 +29,21 @@ Docker container for use as Identity Provider and authentication portal in front
   - [4.4. Jellyfin](#44-jellyfin)
     - [4.4.1. Authentik settings](#441-authentik-settings)
     - [4.4.2. Application settings](#442-application-settings)
-- [2.8 Jellyseerr](#28-jellyseerr)
-    - [2.8.1 Authentik settings](#281-authentik-settings)
-    - [2.8.2 Application settings](#282-application-settings)
-  - [4.5. Nextcloud](#45-nextcloud)
-    - [4.5.1. Authentik settings](#451-authentik-settings)
-    - [4.5.2. Application settings](#452-application-settings)
-  - [4.6. Servarr](#46-servarr)
-    - [4.6.1. Traefik changes](#461-traefik-changes)
-    - [4.6.2. Authentik settings](#462-authentik-settings)
-  - [4.7. Synology NAS](#47-synology-nas)
-    - [4.7.1. Authentik settings](#471-authentik-settings)
-    - [4.7.2. Application settings](#472-application-settings)
+- [5. 2.8 Jellyseerr](#5-28-jellyseerr)
+    - [5.0.1. 2.8.1 Authentik settings](#501-281-authentik-settings)
+    - [5.0.2. 2.8.2 Application settings](#502-282-application-settings)
+  - [5.1. Nextcloud](#51-nextcloud)
+    - [5.1.1. Authentik settings](#511-authentik-settings)
+    - [5.1.2. Application settings](#512-application-settings)
+  - [5.2. Paperless](#52-paperless)
+    - [5.2.1. Authentik settings](#521-authentik-settings)
+    - [5.2.2. Application settings](#522-application-settings)
+  - [5.3. Servarr](#53-servarr)
+    - [5.3.1. Traefik changes](#531-traefik-changes)
+    - [5.3.2. Authentik settings](#532-authentik-settings)
+  - [5.4. Synology NAS](#54-synology-nas)
+    - [5.4.1. Authentik settings](#541-authentik-settings)
+    - [5.4.2. Application settings](#542-application-settings)
 
 ## 1. Docker Setup
 1. Initialize config by running init.sh: `./init.sh`
@@ -504,10 +507,10 @@ First we need to setup a flow for allowing the service account access
 - User filter: `(objectClass=user)`
 - Username attribute: `cn`
 
-## 2.8 Jellyseerr
+## 5. 2.8 Jellyseerr
 Jellyseerr needs to connect to the Jellyfin server with an account that has admin rights, use the Jellyfin `admin` user you set up earlier.
 
-#### 2.8.1 Authentik settings
+#### 5.0.1. 2.8.1 Authentik settings
 1. Open the Authentik Admin Interface
 1. Go to `Applications->Providers` and click `Create`
 1. Select `OAuth2/OpenID Provider` and click `Next`
@@ -527,7 +530,7 @@ Jellyseerr needs to connect to the Jellyfin server with an account that has admi
 1. (Optional) If you want to suppress Jellyfin being listed in the Authentik User Interface set `Launch URL` to `blank://blank`
 1. Click `Create`
 
-#### 2.8.2 Application settings
+#### 5.0.2. 2.8.2 Application settings
 1. When you first load the page you're met with the setup wizard, click `Configure Jellyfin`
 1. Enter:
     - Jellyfin URL: `http://jellyfin:8096`
@@ -575,10 +578,10 @@ Jellyseerr needs to connect to the Jellyfin server with an account that has admi
 1. Click `Save Changes` at the bottom, then close the `Configure OpenID Connect` window by clicking `Close`
 1. Finally go to the bottom and click `Save Changes`
 
-### 4.5. Nextcloud
+### 5.1. Nextcloud
 Authentik has a community integration for Nextcloud to allow user login and provisioning via Authentik.
 
-#### 4.5.1. Authentik settings
+#### 5.1.1. Authentik settings
 Make sure usernames are immutable by going to `System->Settings` in the `Admin Interface` and checking that `Allow users to change username` is **OFF**.
 
 1. Open the Authentik Admin Interface
@@ -641,7 +644,7 @@ Make sure usernames are immutable by going to `System->Settings` in the `Admin I
 
 To map an Authentik user to an existing Nextcloud account give the user an attribute like `nextcloud_user_id: NEXTCLOUD_ACCOUNT_NAME`. To give a user a quota limit give it an atrtibute like `nextcloud_quota: 10 GB`.
 
-#### 4.5.2. Application settings
+#### 5.1.2. Application settings
 1. Log into the web UI using an admin account, click on the profile icon in the top-right and then click on `Apps`
 1. Select the `Integration` category to the left and look for `OpenID Connect user backend`, enable it
 1. Go to the top-right menu again and this time click `Administration Settings`
@@ -661,10 +664,33 @@ To map an Authentik user to an existing Nextcloud account give the user an attri
 
 To make Authentik the default login method for Nextcloud go to your Nextcloud docker directory and run `docker compose exec -u www-data nextcloud php occ config:app:set --value=0 user_oidc allow_multiple_user_backends`.
 
-### 4.6. Servarr
+### 5.2. Paperless
+#### 5.2.1. Authentik settings
+1. Open the Authentik Admin Interface
+2. Go to `Applications->Providers` and click `Create`
+3. Select `OAuth2/OpenID Provider` and click `Next`
+4. Enter the following:
+   - Name `Paperless Provider`
+   - Authorization flow: implicit-consent
+   - Client type: Confidential
+   - Redirect URIs/Origins: Strict - `https://paperless.DOMAIN.COM/accounts/oidc/authentik/login/callback/`
+5. Take note of `Client ID` and `Client Secret`, you will use these when setting up your `.env` file later
+6. Expand `Advanced protocol settings` and verify that the selected scopes are:
+- authentik default OAuth Mapping: OpenID 'email'
+- authentik default OAuth Mapping: OpenID 'openid'
+- authentik default OAuth Mapping: OpenID 'profile'
+7. Click `Finish`
+8. Go to `Application->Applications` and click `Create`
+9.  Enter `Name`/`Slug` as `Paperless`/`paperless` and for `Provider` select the recently created `Paperless Provider`
+10. Click `Create`
+
+#### 5.2.2. Application settings
+1. qwfqwfg
+
+### 5.3. Servarr
 Authentik can be set up to contain the user//pass for the HTTP logins for the various Servarr apps and to forward credentials to the respective app after authentication via Authentik. This way you can keep authentication activated for each app but still only have to log in once when going through Authentik.
 
-#### 4.6.1. Traefik changes
+#### 5.3.1. Traefik changes
 1. Go to your Traefik dir and open your `dynamic_config.yml`
 1. Create a middleware similar to the one in the general Traefik setup above but including the `authorization` header (this is required for Authentik to be able to forward the credentials):
     ```
@@ -700,7 +726,7 @@ Authentik can be set up to contain the user//pass for the HTTP logins for the va
 
 For the services where you want to use the HTTP-Basic authentication forwarding via Authentik you need to replace the default authentik middleware chain with the `authentik-http` created above instead.
 
-#### 4.6.2. Authentik settings
+#### 5.3.2. Authentik settings
 1. Open the Authentik Admin Interface
 1. Go to `Directory->Groups` and click `Create`
 1. Set a suitable name, e.g. `Servarr Users`
@@ -731,10 +757,10 @@ For the services where you want to use the HTTP-Basic authentication forwarding 
 1. Click `Update`
 1. The previously created providers should now be listed in the `Providers` tab for `authentik Embedded Outpost`
 
-### 4.7. Synology NAS
+### 5.4. Synology NAS
 Authentik has a community integration for Synology DSM to allow user login via Authentik.
 
-#### 4.7.1. Authentik settings
+#### 5.4.1. Authentik settings
 1. Open the Authentik Admin Interface
 1. Go to `Applications->Providers` and click `Create`
 1. Select `OAuth2/OpenID Provider` and click `Next`
@@ -748,7 +774,7 @@ Authentik has a community integration for Synology DSM to allow user login via A
 1. Go to `Applications->Applications` and click `Create`
 1. Enter `Name`//`Slug` as `NAS`//`nas` and select the recently created provider, click `Create`
 
-#### 4.7.2. Application settings
+#### 5.4.2. Application settings
 1. Log in to DSM with an admin account
 1. Go to `Control Panel->Domain/LDAP` and click on the `SSO Client` tab
 1. Check the `Enable OpenID Connect SSO service` box and click the `OpenID Connect SSO Settings` button below it
