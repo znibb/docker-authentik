@@ -17,18 +17,21 @@ Docker container for use as Identity Provider and authentication portal in front
   - [3.5. Password recovery](#35-password-recovery)
   - [3.6. Invitation](#36-invitation)
 - [4. Applications setup](#4-applications-setup)
-  - [4.1. Home-Assistant](#41-home-assistant)
+  - [4.1. Forgejo](#41-forgejo)
     - [4.1.1. Authentik settings](#411-authentik-settings)
     - [4.1.2. Application settings](#412-application-settings)
-  - [4.2. Immich](#42-immich)
+  - [4.2. Home-Assistant](#42-home-assistant)
     - [4.2.1. Authentik settings](#421-authentik-settings)
     - [4.2.2. Application settings](#422-application-settings)
-  - [4.3. Inventree](#43-inventree)
+  - [4.3. Immich](#43-immich)
     - [4.3.1. Authentik settings](#431-authentik-settings)
     - [4.3.2. Application settings](#432-application-settings)
-  - [4.4. Jellyfin](#44-jellyfin)
+  - [4.4. Inventree](#44-inventree)
     - [4.4.1. Authentik settings](#441-authentik-settings)
     - [4.4.2. Application settings](#442-application-settings)
+  - [4.5. Jellyfin](#45-jellyfin)
+    - [4.5.1. Authentik settings](#451-authentik-settings)
+    - [4.5.2. Application settings](#452-application-settings)
 - [5. 2.8 Jellyseerr](#5-28-jellyseerr)
     - [5.0.1. 2.8.1 Authentik settings](#501-281-authentik-settings)
     - [5.0.2. 2.8.2 Application settings](#502-282-application-settings)
@@ -254,8 +257,77 @@ You can now go to `Directory->Invitations` and click `Create` to create an invit
 1. Expand the recently created invite and `Link to use the invitation` will contain the link to be distributed.
 
 ## 4. Applications setup
-### 4.1. Home-Assistant
+### 4.1. Forgejo
 #### 4.1.1. Authentik settings
+1. Go to `Directory->Groups` and create the following groups:
+    - forgejo Restricted
+    - forgejo User
+    - forgejo Admin
+2. Add your user to the relevant group
+
+3. Go to `Customization->Property Mappings` and click `Create`
+4. Select `Scope Mapping` and click `Next`
+5. Enter the following:
+    - Name: `Forgejo Profile`
+    - Scope name: `forgejo`
+    - Expression: 
+    ```
+    entitlement_names = {
+        entitlement.name
+        for entitlement in request.user.app_entitlements(provider.application)
+    }
+    forgejo_claims = {}
+
+    if "gitrestricted" in entitlement_names:
+        forgejo_claims["forgejo"] = "restricted"
+    if "gituser" in entitlement_names:
+        forgejo_claims["forgejo"] = "user"
+    if "gitadmin" in entitlement_names:
+        forgejo_claims["forgejo"] = "admin"
+
+    return forgejo_claims
+    ```
+6. Click `Finish`
+
+6. Go to `Applications->Applications` and click `Create with Provider`
+7. Enter the following:
+    - Application Name: `Forgejo`
+    - Slug: `forgejo`
+8. Click `Next`
+9.  Select `Oauth2/OpenID Provider` and click `Next`
+10. Enter the following:
+    - Provider Name: `Forgejo Provider`
+    - Authorization flow: `implicit-consent`
+    - Redirect URIs/Origins: Strict - `https://git.DOMAIN.COM/user/oauth2/authentik/callback`
+    - Advanced protocol settings->Scopes: Add `authentik default OAuth Mapping: Application Entitlements` and `Forgejo Profile`
+    - Advanced protocol settings->Subject mode: `Based on User's username`
+11. Click `Next` twice
+12. Click `Submit`
+13. Click on the created Application, go to the `Application entitlements` tab and create these entitlements:
+    - gitrestricted
+    - gituser
+    - gitadmin
+14. Bind the entitlements to the previously created groups
+
+#### 4.1.2. Application settings
+1. Click on the profile button at the top-right and select `Site administration`
+2. Go to `Identity & access->Authentication sources` and click `Add authentication source`
+3. Enter the following:
+- Authentication type: `OAuth2`
+- Authentication name: `authentik`
+- OAuth2 provider: `OpenID Connect`
+- Client ID (Key): Copy from Forgejo Provider in Authentik
+- CLient Secret: Copy from Forgejo Provider in Authentik
+- Icon URL: https://auth.DOMAIN.COM/static/dist/assets/icons/icon.png
+- OpenID Connect Auto Discovery URL: `https://auth.DOMAIN.COM/application/o/forgejo/.well-known/openid-configuration`
+- Additional scopes: `email profile forgejo`
+- Required claim name: `forgejo`
+- Claim name providing group names for this source: `forgejo`
+- Group claim value for administrator users: `admin`
+- Group claim value for restricted users: `restricted`
+
+### 4.2. Home-Assistant
+#### 4.2.1. Authentik settings
 1. Go to `Applications->Providers` and click `Create`
 1. Select `OAuth2/OpenID Provider` and click `Next`
 1. Enter the following:
@@ -273,7 +345,7 @@ You can now go to `Directory->Invitations` and click `Create` to create an invit
     - Provider: `HomeAssistant Provider`
 1. Click `Create`
 
-#### 4.1.2. Application settings
+#### 4.2.2. Application settings
 1. Log into HomeAssistant as the admin user via local ip
 1. Install the `Terminal & SSH` addon by going to `Settings->Add-ons`, clicking on the `Add-on store` button at the bottom right, searching for `Terminal & SSH` and clicking `Install`
 1. Click `Terminal` in the left-side menu and run `wget -O - https://get.hacs.xyz | bash -` to install `Home Assistant Community Store (HACS)`
@@ -305,10 +377,10 @@ openid:
     create_user: true # Automatically create users on first login
 ```
 
-### 4.2. Immich
+### 4.3. Immich
 Authentik has a community integration for Immich to allow user login and provisioning via Authentik.
 
-#### 4.2.1. Authentik settings
+#### 4.3.1. Authentik settings
 1. Open the Authentik Admin Interface
 1. Go to `Applications->Providers` and click `Create`
 1. Select `OAuth2/OpenID Provider` and click `Next`
@@ -329,7 +401,7 @@ Authentik has a community integration for Immich to allow user login and provisi
     - Provider: `Immich Provider`
 1. Click `Create`
 
-#### 4.2.2. Application settings
+#### 4.3.2. Application settings
 1. Log in with the admin account initially set up for Immich
 1. Click the top-right circle icon and select `Administration`
 1. From the left-side menu select `Settings` and then `Authentication Settings->OAuth`
@@ -340,10 +412,10 @@ Authentik has a community integration for Immich to allow user login and provisi
     - AUTO LAUNCH: Set to ON
 1. Click `Save` at the bottom of the form
 
-### 4.3. Inventree
+### 4.4. Inventree
 Authentik doesn't have an outright integration for Inventree but Inventree supports general OIDC.
 
-#### 4.3.1. Authentik settings
+#### 4.4.1. Authentik settings
 1. Go to `Customization->Propery Mappings` and click `Create`
 1. Select `Scope Mapping` and click `Next`
 1. Enter the following:
@@ -387,7 +459,7 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
     - Provider: `Inventree Provider`
 1. Click `Create`
 
-#### 4.3.2. Application settings
+#### 4.4.2. Application settings
 1. Log in as superuser/admin and go to `Admin Center`
 1. Under `Operations->Users / Access`, expand the `Groups` section and add groups called `Admins` and `Users`
 1. Go to `System Settings->Authentication`
@@ -413,10 +485,10 @@ Authentik doesn't have an outright integration for Inventree but Inventree suppo
 
 Note that you will need to promote users to staff/superuser status manually as at the time of writing there's no natively supported way to automate it.
 
-### 4.4. Jellyfin
+### 4.5. Jellyfin
 We're not using Authentik middleware here but instead relying on LDAP for automating user setup and logging in via the regular Jellyfin login
 
-#### 4.4.1. Authentik settings
+#### 4.5.1. Authentik settings
 First we need to setup a flow for allowing the service account access
 
 1. Create a LDAP service password stage by going to `Flows and Stages->Stages->Create` and entering:
@@ -495,7 +567,7 @@ First we need to setup a flow for allowing the service account access
 1. Open your `.env` file and set `AUTHENTIK_LDAP_TOKEN` to the value you just copied from the outpost
 1. Restart the LDAP container: `docker compose up -d --force-restart ldap`
 
-#### 4.4.2. Application settings
+#### 4.5.2. Application settings
 1. Install the LDAP plugin by logging in as an admin account and going to `Dashboard->Catalog` and locating `LDAP Authentication` and clicking `Install`
 1. Restart jellyfin: `docker compose up -d --force-recreate jellyfin`
 1. Configure the plugin with the following:
